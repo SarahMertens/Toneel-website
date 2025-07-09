@@ -141,14 +141,6 @@ ul#personList button:hover {
   background-color: #b52a38;
 }
 
-.controls {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
 .controls label {
   display: flex;
   flex-direction: column;
@@ -190,4 +182,12 @@ ul#personList button:hover {
 }
 .location-stats li {
   list-style: disc;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
 }
