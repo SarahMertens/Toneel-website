@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mijn Website</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <button onclick="showPage('overzicht')">Overzicht</button>
+      <button onclick="showPage('toevoegen')">Toevoegen</button>
+    </header>
+
+    <main>
+      <section id="toevoegen" class="page">
+        <h1>Persoon toevoegen</h1>
+        <form id="addPersonForm">
+          <label>Voornaam: <input type="text" id="firstName" required /></label
+          ><br />
+          <label>Achternaam: <input type="text" id="lastName" required /></label
+          ><br />
+
+          <label
+            >Datum:
+            <select id="date">
+              <option value="" disabled selected>
+                &laquo;&laquo; Kies een datum &raquo;&raquo;
+              </option>
+              <option>31 januari 2026</option>
+              <option>1 februari 2026</option>
+              <option>7 februari 2026</option>
+              <option>8 februari 2026</option>
+              <option>14 februari 2026</option>
+              <option>15 februari 2026</option>
+              <option>22 februari 2026</option>
+            </select> </label
+          ><br />
+
+          <label for="location">Locatie:</label>
+          <input type="text" id="location" readonly />
+
+          <br /><br />
+
+          <button type="submit">Toevoegen</button>
+        </form>
+      </section>
+
+      <section id="overzicht" class="page active">
+        <h1>Lijst van personen</h1>
+
+        <p id="totalEarned" class="earned">Totaal verdiend: €0</p>
+        <div id="locationStats" class="location-stats"></div>
+        <div class="controls">
+          <label
+            >Sorteer op:
+            <select id="sortSelect">
+              <option value="firstName">Voornaam</option>
+              <option value="lastName">Achternaam</option>
+              <option value="date">Datum</option>
+              <option value="location">Locatie</option>
+            </select>
+          </label>
+
+          <label
+            >Zoek:
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Zoek naam of locatie..."
+            />
+          </label>
+          <button id="downloadBtn" class="download-btn">
+            Download als Excel
+          </button>
+        </div>
+        <ul id="personList"></ul>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
