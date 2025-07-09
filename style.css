@@ -191,3 +191,60 @@ ul#personList button:hover {
   align-items: center;
   margin-bottom: 1rem;
 }
+
+@media (max-width: 600px) {
+  /* Basis layout */
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+    background: #f9f9f9;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  /* Formulieren en lijsten */
+  form,
+  ul {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Responsieve invoervelden */
+  input[type='text'],
+  input[type='number'],
+  select,
+  button {
+    width: 100%;
+    padding: 0.5em;
+    margin-bottom: 1em;
+    box-sizing: border-box;
+    font-size: 1em;
+  }
+
+  /* Lijstitems */
+  #personList li {
+    background: white;
+    padding: 1em;
+    margin-bottom: 1em;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+
+  #personList li > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+  }
+
+  #personList button {
+    width: 100%;
+  }
+}
+
