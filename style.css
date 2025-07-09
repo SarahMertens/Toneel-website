@@ -243,22 +243,7 @@ ul#personList button:hover {
     gap: 0.3em;
   }
 
-#personList {
-    width: 100vw;
+#personList button {
+    width: 100%;
   }
-
-  /* Maak eerste rij flex met de eerste 2 buttons */
-  #personList > button:nth-child(1),
-  #personList > button:nth-child(2) {
-    width: 50vw; /* elk 50% van het scherm */
-    box-sizing: border-box;
-    float: left; /* naast elkaar */
-  }
-
-##container > button:nth-child(3) {
-    clear: both;
-    width: 100vw; /* hele breedte */
-    box-sizing: border-box;
-    margin-top: 10px;
-}
 
