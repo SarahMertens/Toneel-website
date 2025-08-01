@@ -247,3 +247,19 @@ ul#personList button:hover {
     width: 100%;
   }
 
+  .verwijder-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.download-btn {
+  background-color: #3498db;
+  color: white;
+}
+
+.wijzig-btn {
+  background-color: #f1c40f;
+  color: black;
+}
+
+
