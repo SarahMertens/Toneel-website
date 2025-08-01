@@ -161,12 +161,14 @@ function updatePersonList() {
 
     // Maak een container voor standaardweergave en bewerken
     const infoDiv = document.createElement('div');
+    infoDiv.classList.add('person-info'); // tekst aan linkerkant
     const label = person.amount == 1 || !person.amount ? 'persoon' : 'personen';
     infoDiv.textContent = `${person.firstName} ${person.lastName} – ${
       person.date
     } – ${person.location} – ${person.amount || 1} ${label}`;
 
     const btnsDiv = document.createElement('div');
+    btnsDiv.classList.add('knoppen-wrapper'); // knoppen rechts
     btnsDiv.style.display = 'flex';
     btnsDiv.style.gap = '10px';
 
@@ -207,9 +209,9 @@ function updatePersonList() {
       showEditForm(person, li);
     };
 
-    removeBtn.classList.add('verwijder-btn');
-    downloadPhotoBtn.classList.add('download-btn');
-    editBtn.classList.add('wijzig-btn');
+    removeBtn.classList.add('verwijder-knop');
+    downloadPhotoBtn.classList.add('download-knop');
+    editBtn.classList.add('wijzig-knop');
 
     btnsDiv.appendChild(downloadPhotoBtn);
     btnsDiv.appendChild(editBtn);
