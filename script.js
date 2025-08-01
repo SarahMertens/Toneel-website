@@ -207,6 +207,10 @@ function updatePersonList() {
       showEditForm(person, li);
     };
 
+    removeBtn.classList.add('verwijder-btn');
+    downloadPhotoBtn.classList.add('download-btn');
+    editBtn.classList.add('wijzig-btn');
+
     btnsDiv.appendChild(downloadPhotoBtn);
     btnsDiv.appendChild(editBtn);
     btnsDiv.appendChild(removeBtn);
