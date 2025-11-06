@@ -31,6 +31,7 @@ document.getElementById('date').addEventListener('change', function () {
   }
 });
 
+// Toevoegen -- combineer aantallen als zelfde persoon+datum!
 document.getElementById('addPersonForm').addEventListener('submit', function (e) {
   e.preventDefault();
 
@@ -40,6 +41,7 @@ document.getElementById('addPersonForm').addEventListener('submit', function (e)
   const location = date ? dateToLocationMap[date] || '' : '';
   const amount = parseInt(document.getElementById('amount').value, 10) || 1;
 
+  // Duplicaat check enkel als datum is ingevuld
   if (date) {
     const existingIdx = people.findIndex(
       (p) => p.firstName.toLowerCase() === firstName.toLowerCase() &&
@@ -47,9 +49,14 @@ document.getElementById('addPersonForm').addEventListener('submit', function (e)
              p.date === date
     );
     if (existingIdx !== -1) {
-      if (!confirm('Je hebt deze persoon met deze datum al toegevoegd. Wil je dit TOCH doen (bv extra ticket voor vriend)?')) {
-        return;
+      if (confirm('Deze persoon staat al op deze datum. Wil je het aantal verhogen?')) {
+        people[existingIdx].amount = (parseInt(people[existingIdx].amount, 10) || 1) + amount;
+        savePeople();
+        this.reset();
+        document.getElementById('location').value = '';
+        showPage('overzicht');
       }
+      return;
     }
   }
 
@@ -60,6 +67,7 @@ document.getElementById('addPersonForm').addEventListener('submit', function (e)
   showPage('overzicht');
 });
 
+// Overzicht tonen & sorteren, download ticket alleen bij personen met datum
 function updatePersonList() {
   const list = document.getElementById('personList');
   const search = document.getElementById('searchInput').value.toLowerCase();
@@ -71,7 +79,7 @@ function updatePersonList() {
   const totalEarned = filtered.reduce((sum, p) => sum + (p.amount || 1)*8, 0);
   document.getElementById('totalEarned').textContent = `Totaal verdiend: €${totalEarned}`;
 
-  // Statistiek
+  // Statistieken per datum
   const dateCounts = {};
   filtered.forEach(p => {
     const d = p.date || 'Nog niet gekozen';
@@ -92,11 +100,11 @@ function updatePersonList() {
     const li = document.createElement('li');
     let knopHtml = '';
     if (person.date) {
-      knopHtml += `<button onclick="downloadImageWithText(people[${people.indexOf(person)}])">Download Ticket</button>`;
+      knopHtml += `<button class="download-knop" onclick="downloadImageWithText(people[${people.indexOf(person)}])">Download Ticket</button>`;
     }
     knopHtml += `
-      <button onclick="showEditForm(${people.indexOf(person)},this.parentNode.parentNode)">Wijzig</button>
-      <button onclick="removePerson(${people.indexOf(person)})">Verwijder</button>
+      <button class="wijzig-knop" onclick="showEditForm(${people.indexOf(person)},this.parentNode.parentNode)">Wijzig</button>
+      <button class="verwijder-knop" onclick="removePerson(${people.indexOf(person)})">Verwijder</button>
     `;
     li.innerHTML = `
       <div class="person-info">
@@ -109,6 +117,7 @@ function updatePersonList() {
     list.appendChild(li);
   });
 }
+
 window.removePerson = function(idx) {
   if (confirm('Weet je zeker dat je deze persoon wilt verwijderen?')) {
     people.splice(idx, 1);
@@ -155,11 +164,40 @@ window.showEditForm = function(idx, li) {
 
   editForm.onsubmit = function(e) {
     e.preventDefault();
-    person.firstName = editForm.firstName.value.trim();
-    person.lastName = editForm.lastName.value.trim();
-    person.date = editForm.date.value;
-    person.location = person.date ? (dateToLocationMap[person.date] || '') : '';
-    person.amount = parseInt(editForm.amount.value, 10) || 1;
+    const newFirstName = editForm.firstName.value.trim();
+    const newLastName = editForm.lastName.value.trim();
+    const newDate = editForm.date.value;
+    const newLocation = newDate ? (dateToLocationMap[newDate] || "") : "";
+    const newAmount = parseInt(editForm.amount.value, 10) || 1;
+
+    // Kijk of er al een ANDERE persoon met dezelfde naam, datum bestaat
+    const existingIdx = people.findIndex(
+      (p, i) => i !== idx &&
+                p.firstName.toLowerCase() === newFirstName.toLowerCase() &&
+                p.lastName.toLowerCase() === newLastName.toLowerCase() &&
+                p.date === newDate
+    );
+    if (existingIdx !== -1) {
+      if (confirm('Deze persoon staat al op deze datum. Wil je het aantal samenvoegen?')) {
+        // Tel bij andere op, verwijder huidige
+        people[existingIdx].amount = (parseInt(people[existingIdx].amount, 10) || 1) + newAmount;
+        people.splice(idx, 1);
+        savePeople();
+        updatePersonList();
+        return;
+      } else {
+        // Annuleer wijziging
+        updatePersonList();
+        return;
+      }
+    }
+
+    // Normaal opslaan
+    person.firstName = newFirstName;
+    person.lastName = newLastName;
+    person.date = newDate;
+    person.location = newLocation;
+    person.amount = newAmount;
     savePeople();
     updatePersonList();
   };
