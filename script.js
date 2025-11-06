@@ -1,4 +1,3 @@
-// Data koppeling datum --> locatie
 const dateToLocationMap = {
   '31 januari 2026': 'OC De Boeie',
   '1 februari 2026': 'OC De Boeie',
@@ -11,27 +10,26 @@ const dateToLocationMap = {
 
 let people = JSON.parse(localStorage.getItem('peopleList')) || [];
 
-// Paginawissel
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(pageId).classList.add('active');
   if (pageId === 'overzicht') updatePersonList();
 }
 
-// Toevoeg-formulier: locatie altijd updaten op basis van datum
+function savePeople() {
+  localStorage.setItem('peopleList', JSON.stringify(people));
+}
+
 document.getElementById('date').addEventListener('change', function () {
-  const loc = dateToLocationMap[this.value] || '';
-  document.getElementById('location').value = loc;
+  document.getElementById('location').value = dateToLocationMap[this.value] || '';
 });
 
-// Toevoegen
 document.getElementById('addPersonForm').addEventListener('submit', function (e) {
   e.preventDefault();
 
   const firstName = document.getElementById('firstName').value.trim();
   const lastName = document.getElementById('lastName').value.trim();
-  const dateSel = document.getElementById('date');
-  const date = dateSel.value;
+  const date = document.getElementById('date').value;
   const location = dateToLocationMap[date] || '';
   const amount = parseInt(document.getElementById('amount').value, 10) || 1;
 
@@ -40,28 +38,24 @@ document.getElementById('addPersonForm').addEventListener('submit', function (e)
     return;
   }
 
-// Zoek bestaande index van dezelfde persoon + datum
   const existingIdx = people.findIndex(
     (p) => p.firstName.toLowerCase() === firstName.toLowerCase() &&
            p.lastName.toLowerCase() === lastName.toLowerCase() &&
            p.date === date
   );
-
   if (existingIdx !== -1) {
-    // Bestaat al: vraag wat de gebruiker wil
-    if (!confirm('Je hebt deze persoon met deze datum al toegevoegd. Wil je dit TOCH doen? (Bijvoorbeeld extra ticket voor vriend)')) {
-      return; // Annuleer toevoegen
+    if (!confirm('Je hebt deze persoon met deze datum al toegevoegd. Wil je dit TOCH doen (bv extra ticket voor vriend)?')) {
+      return;
     }
   }
 
   people.unshift({ firstName, lastName, date, location, amount, addedAt: Date.now() });
-  localStorage.setItem('peopleList', JSON.stringify(people));
+  savePeople();
   this.reset();
   document.getElementById('location').value = '';
   showPage('overzicht');
 });
 
-// Overzicht tonen, sorteer op meest recent
 function updatePersonList() {
   const list = document.getElementById('personList');
   const search = document.getElementById('searchInput').value.toLowerCase();
@@ -77,7 +71,7 @@ function updatePersonList() {
   filtered.forEach(p => {
     dateCounts[p.date] = (dateCounts[p.date] || 0) + (p.amount || 1);
   });
-  document.getElementById('locationStats').innerHTML = 
+  document.getElementById('locationStats').innerHTML =
     '<strong>Aantal personen per datum:</strong><ul>' +
     Object.entries(dateCounts).map(([d, n]) => `<li>${d}: ${n}</li>`).join('') +
     '</ul>';
@@ -95,8 +89,9 @@ function updatePersonList() {
         ${person.firstName} ${person.lastName} – ${person.date} – ${person.location} – ${person.amount || 1} ${label}
       </div>
       <div class="knoppen-wrapper">
-        <button onclick="showEditForm(${idx},this.parentNode.parentNode)">Wijzig</button>
-        <button onclick="removePerson(${idx})">Verwijder</button>
+        <button onclick="downloadImageWithText(people[${people.indexOf(person)}])">Download Ticket</button>
+        <button onclick="showEditForm(${people.indexOf(person)},this.parentNode.parentNode)">Wijzig</button>
+        <button onclick="removePerson(${people.indexOf(person)})">Verwijder</button>
       </div>
     `;
     list.appendChild(li);
@@ -106,12 +101,11 @@ function updatePersonList() {
 window.removePerson = function(idx) {
   if (confirm('Weet je zeker dat je deze persoon wilt verwijderen?')) {
     people.splice(idx, 1);
-    localStorage.setItem('peopleList', JSON.stringify(people));
+    savePeople();
     updatePersonList();
   }
 };
 
-// Wijzig-formulier
 window.showEditForm = function(idx, li) {
   const person = people[idx];
   const editForm = document.createElement('form');
@@ -134,15 +128,12 @@ window.showEditForm = function(idx, li) {
     <button type="submit">Opslaan</button>
     <button type="button" class="cancel">Annuleer</button>
   `;
-
   const dateSel = editForm.querySelector('[name="date"]');
   const locInput = editForm.querySelector('[name="location"]');
   dateSel.addEventListener('change', function() {
     locInput.value = dateToLocationMap[this.value] || '';
   });
-  // Init locatie direct correct zetten
   locInput.value = dateToLocationMap[person.date] || '';
-
   editForm.onsubmit = function(e) {
     e.preventDefault();
     person.firstName = editForm.firstName.value.trim();
@@ -150,7 +141,7 @@ window.showEditForm = function(idx, li) {
     person.date = editForm.date.value;
     person.location = dateToLocationMap[person.date] || '';
     person.amount = parseInt(editForm.amount.value, 10) || 1;
-    localStorage.setItem('peopleList', JSON.stringify(people));
+    savePeople();
     updatePersonList();
   };
   editForm.querySelector('.cancel').onclick = updatePersonList;
@@ -160,7 +151,6 @@ window.showEditForm = function(idx, li) {
 
 document.getElementById('searchInput').addEventListener('input', updatePersonList);
 
-// Excel export
 document.getElementById('downloadBtn').addEventListener('click', () => {
   if (!people.length) {
     alert('Er zijn geen personen om te exporteren.');
@@ -185,7 +175,45 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
   XLSX.writeFile(workbook, 'Toneelgroep_De_Ballon.xlsx');
 });
 
-// Init overzicht bij laden als actief
+function downloadImageWithText(person) {
+  const img = new Image();
+  img.src = 'Ticket Er was eens ... Rare wereld VK.jpg';
+
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    ctx.font = '28px Arial';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'center';
+
+    // Pas eventueel aan voor jouw afbeelding
+    const nameX = 860;
+    const nameY = 396;
+    const dateX = 695;
+    const dateY = 315;
+    const locationX = 690;
+    const locationY = 356;
+
+    ctx.fillText(person.date, dateX, dateY);
+    ctx.fillText(person.location, locationX, locationY);
+    ctx.fillText(`${person.lastName} ${person.firstName}`, nameX, nameY);
+
+    const link = document.createElement('a');
+    link.download = `${person.lastName}_${person.firstName}-Ticket-Rare_Wereld.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+  img.onerror = () => {
+    alert('Kan ticketafbeelding niet laden!');
+  };
+}
+
+// Initial display
 if (document.getElementById('overzicht').classList.contains('active')) {
   updatePersonList();
 }
