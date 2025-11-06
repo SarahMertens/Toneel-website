@@ -1,18 +1,50 @@
-let people = JSON.parse(localStorage.getItem('peopleList')) || [];
+ let people = JSON.parse(localStorage.getItem('peopleList')) || [];
 let lastAddedPerson = null;
 
 const dateToLocationMap = {
-  '31 januari 2026': 'OC De Boeie',
-  '1 februari 2026': 'OC De Boeie',
-  '7 februari 2026': 'OC De Schelpe',
-  '8 februari 2026': 'OC De Schelpe',
-  '14 februari 2026': 'OC De Blomme',
-  '15 februari 2026': 'OC De Blomme',
-  '22 februari 2026': 'OC De Ballon',
+  '2026-01-31': 'OC De Boeie',
+  '2026-02-01': 'OC De Boeie',
+  '2026-02-07': 'OC De Schelpe',
+  '2026-02-08': 'OC De Schelpe',
+  '2026-02-14': 'OC De Blomme',
+  '2026-02-15': 'OC De Blomme',
+  '2026-02-22': 'OC De Ballon',
 };
 
+// Hulpfunctie: formatteer datum naar Nederlandse weergave
+function formatDateToDutch(isoDate) {
+  if (!isoDate) return 'Nog niet gekozen';
+  
+  const months = [
+    'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+    'juli', 'augustus', 'september', 'oktober', 'november', 'december'
+  ];
+  const date = new Date(isoDate + 'T00:00:00');
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
+// Hulpfunctie: sorteer op datum (entries zonder datum komen achteraan)
+function sortByDate(a, b) {
+  // Entries zonder datum komen achteraan
+  if (!a.date && !b.date) return 0;
+  if (!a.date) return 1;
+  if (!b.date) return -1;
+  
+  const dateA = new Date(a.date + 'T00:00:00');
+  const dateB = new Date(b.date + 'T00:00:00');
+  return dateA - dateB;
+}
+
 function savePeople() {
-  localStorage.setItem('peopleList', JSON.stringify(people));
+  try {
+    localStorage.setItem('peopleList', JSON.stringify(people));
+  } catch (e) {
+    alert('Fout bij opslaan: localStorage is mogelijk vol of uitgeschakeld.');
+    console.error('localStorage error:', e);
+  }
 }
 
 function showPage(pageId) {
@@ -34,29 +66,36 @@ document
     const amount = parseInt(document.getElementById('amount').value, 10) || 1;
     const firstName = document.getElementById('firstName').value.trim();
     const lastName = document.getElementById('lastName').value.trim();
-    const date = document.getElementById('date').value;
-    const location = document.getElementById('location').value;
+    const date = document.getElementById('date').value || null;
+    const location = document.getElementById('location').value.trim();
 
     if (firstName && lastName) {
       const duplicate = people.some(
         (p) =>
           p.firstName.toLowerCase() === firstName.toLowerCase() &&
           p.lastName.toLowerCase() === lastName.toLowerCase() &&
-          p.date === date
+          p.date === date &&
+          p.location === location
       );
 
       if (duplicate) {
-        alert('Deze persoon is al toegevoegd op deze datum.');
+        alert('Deze persoon is al toegevoegd met dezelfde datum en locatie.');
         return;
       }
 
-      const newPerson = { firstName, lastName, date, location, amount };
+      const newPerson = { 
+        firstName, 
+        lastName, 
+        date, 
+        location, 
+        amount,
+        addedAt: Date.now() // Timestamp voor sortering
+      };
       people.push(newPerson);
       lastAddedPerson = newPerson;
       savePeople();
       this.reset();
       showPage('overzicht');
-      updatePersonList(); // meteen tonen na toevoegen
     }
   });
 
@@ -66,11 +105,12 @@ function updatePersonList() {
     .getElementById('searchInput')
     .value.toLowerCase();
 
-  const filteredPeople = people.filter((p) =>
-    `${p.firstName} ${p.lastName} ${p.date} ${p.location}`
+  const filteredPeople = people.filter((p) => {
+    const dutchDate = formatDateToDutch(p.date);
+    return `${p.firstName} ${p.lastName} ${dutchDate} ${p.location}`
       .toLowerCase()
-      .includes(searchQuery)
-  );
+      .includes(searchQuery);
+  });
 
   const totalEarned = filteredPeople.reduce(
     (sum, p) => sum + (p.amount || 1) * 8,
@@ -81,27 +121,25 @@ function updatePersonList() {
     'totalEarned'
   ).textContent = `Totaal verdiend: €${totalEarned}`;
 
-  // Bereken aantal per datum
+  // Bereken aantal per datum (inclusief 'Geen datum')
   const dateCounts = {};
   filteredPeople.forEach((p) => {
-    dateCounts[p.date] = (dateCounts[p.date] || 0) + (p.amount || 1);
+    const dutchDate = formatDateToDutch(p.date);
+    dateCounts[dutchDate] = (dateCounts[dutchDate] || 0) + (p.amount || 1);
   });
 
-  // Sorteer op echte datumvolgorde
+  // Sorteer op datum (zonder datum komt achteraan)
   const sortedDates = Object.keys(dateCounts).sort((a, b) => {
-    const parseDate = (d) => {
-      const [day, monthName, year] = d.split(' ');
-      const months = {
-        januari: 0,
-        februari: 1,
-      };
-      return new Date(
-        parseInt(year),
-        months[monthName.toLowerCase()],
-        parseInt(day)
-      );
+    if (a === 'Nog niet gekozen') return 1;
+    if (b === 'Nog niet gekozen') return -1;
+    
+    const findISODate = (dutchDate) => {
+      const person = filteredPeople.find(p => formatDateToDutch(p.date) === dutchDate);
+      return person ? person.date : '';
     };
-    return parseDate(a) - parseDate(b);
+    const dateA = new Date(findISODate(a) + 'T00:00:00');
+    const dateB = new Date(findISODate(b) + 'T00:00:00');
+    return dateA - dateB;
   });
 
   const statsHTML = sortedDates
@@ -109,45 +147,16 @@ function updatePersonList() {
     .join('');
 
   document.getElementById('locationStats').innerHTML = `
-  <p><strong>Aantal personen per datum:</strong></p>
-  <ul>${statsHTML}</ul>
-`;
+    <p><strong>Aantal personen per datum:</strong></p>
+    <ul>${statsHTML}</ul>
+  `;
 
-  let sortedPeople = [...filteredPeople];
-
-  // Als net toegevoegd, zet bovenaan
-  if (lastAddedPerson) {
-    sortedPeople = [
-      lastAddedPerson,
-      ...sortedPeople.filter(
-        (p) =>
-          !(
-            p.firstName === lastAddedPerson.firstName &&
-            p.lastName === lastAddedPerson.lastName &&
-            p.date === lastAddedPerson.date &&
-            p.location === lastAddedPerson.location
-          )
-      ),
-    ];
-    lastAddedPerson = null;
-  } else {
-    sortedPeople.sort((a, b) => {
-      const parseDate = (text) => {
-        const [day, monthName, year] = text.split(' ');
-        const months = {
-          januari: 0,
-          februari: 1,
-        };
-        return new Date(
-          parseInt(year),
-          months[monthName.toLowerCase()],
-          parseInt(day)
-        );
-      };
-
-      return parseDate(a.date) - parseDate(b.date);
-    });
-  }
+  // Sorteer op meest recent toegevoegd (nieuwste bovenaan)
+  let sortedPeople = [...filteredPeople].sort((a, b) => {
+    const timeA = a.addedAt || 0;
+    const timeB = b.addedAt || 0;
+    return timeB - timeA; // Omgekeerde volgorde: nieuwste eerst
+  });
 
   list.innerHTML = '';
 
@@ -156,19 +165,18 @@ function updatePersonList() {
     return;
   }
 
-  sortedPeople.forEach((person, index) => {
+  sortedPeople.forEach((person) => {
     const li = document.createElement('li');
 
-    // Maak een container voor standaardweergave en bewerken
     const infoDiv = document.createElement('div');
-    infoDiv.classList.add('person-info'); // tekst aan linkerkant
+    infoDiv.classList.add('person-info');
     const label = person.amount == 1 || !person.amount ? 'persoon' : 'personen';
-    infoDiv.textContent = `${person.firstName} ${person.lastName} – ${
-      person.date
-    } – ${person.location} – ${person.amount || 1} ${label}`;
+    const dutchDate = formatDateToDutch(person.date);
+    const locationText = person.location || 'Geen locatie';
+    infoDiv.textContent = `${person.firstName} ${person.lastName} – ${dutchDate} – ${locationText} – ${person.amount || 1} ${label}`;
 
     const btnsDiv = document.createElement('div');
-    btnsDiv.classList.add('knoppen-wrapper'); // knoppen rechts
+    btnsDiv.classList.add('knoppen-wrapper');
     btnsDiv.style.display = 'flex';
     btnsDiv.style.gap = '10px';
 
@@ -186,7 +194,8 @@ function updatePersonList() {
           p.firstName === person.firstName &&
           p.lastName === person.lastName &&
           p.date === person.date &&
-          p.location === person.location
+          p.location === person.location &&
+          p.addedAt === person.addedAt
       );
       if (idx !== -1) {
         people.splice(idx, 1);
@@ -195,12 +204,17 @@ function updatePersonList() {
       }
     };
 
-    // Download-foto knop
+    // Download-foto knop (alleen als datum aanwezig is)
     const downloadPhotoBtn = document.createElement('button');
     downloadPhotoBtn.textContent = 'Download Ticket';
-    downloadPhotoBtn.onclick = () => {
-      downloadImageWithText(person);
-    };
+    if (!person.date) {
+      downloadPhotoBtn.disabled = true;
+      downloadPhotoBtn.title = 'Selecteer eerst een datum';
+    } else {
+      downloadPhotoBtn.onclick = () => {
+        downloadImageWithText(person);
+      };
+    }
 
     // Wijzigknop
     const editBtn = document.createElement('button');
@@ -228,27 +242,30 @@ function showEditForm(person, listItemElement) {
   const editForm = document.createElement('form');
   editForm.classList.add('edit-form');
 
+  const dateValue = person.date || '';
+  const isDateSelected = !!person.date;
+
   editForm.innerHTML = `
     <input type="text" name="firstName" value="${person.firstName}" required>
     <input type="text" name="lastName" value="${person.lastName}" required>
-    <select name="date">
-      <option>31 januari 2026</option>
-      <option>1 februari 2026</option>
-      <option>7 februari 2026</option>
-      <option>8 februari 2026</option>
-      <option>14 februari 2026</option>
-      <option>15 februari 2026</option>
-      <option>22 februari 2026</option>
-    </select>
-    <input type="number" name="amount" min="1" max="10" value="${
-      person.amount || 1
-    }" required>
+    <input type="date" name="date" value="${dateValue}">
+    <input type="text" name="location" value="${person.location || ''}" ${isDateSelected ? 'readonly' : ''}>
+    <input type="number" name="amount" min="1" max="10" value="${person.amount || 1}" required>
     <button type="submit">Opslaan</button>
     <button type="button" class="cancel">Annuleer</button>
   `;
 
-  // Selects instellen
-  editForm.date.value = person.date;
+  // Update locatie wanneer datum verandert
+  editForm.date.addEventListener('change', function() {
+    const selectedDate = this.value;
+    if (selectedDate) {
+      const location = dateToLocationMap[selectedDate] || '';
+      editForm.location.value = location;
+      editForm.location.readOnly = true;
+    } else {
+      editForm.location.readOnly = false;
+    }
+  });
 
   // Huidige inhoud wissen
   listItemElement.innerHTML = '';
@@ -261,9 +278,10 @@ function showEditForm(person, listItemElement) {
     const newPerson = {
       firstName: editForm.firstName.value.trim(),
       lastName: editForm.lastName.value.trim(),
-      date: editForm.date.value,
-      location: dateToLocationMap[editForm.date.value] || '',
+      date: editForm.date.value || null,
+      location: editForm.location.value.trim(),
       amount: parseInt(editForm.amount.value),
+      addedAt: person.addedAt || Date.now() // Behoud originele timestamp
     };
 
     const index = people.findIndex(
@@ -271,7 +289,8 @@ function showEditForm(person, listItemElement) {
         p.firstName === person.firstName &&
         p.lastName === person.lastName &&
         p.date === person.date &&
-        (p.amount || 1) === (person.amount || 1)
+        p.location === person.location &&
+        p.addedAt === person.addedAt
     );
 
     if (index !== -1) {
@@ -291,8 +310,8 @@ document
   .getElementById('searchInput')
   .addEventListener('input', updatePersonList);
 
-// Initial display if you're already on page 2
-if (document.getElementById('overzicht').classList.contains('active')) {
+// Initial display
+if (document.getElementById('overzicht')?.classList.contains('active')) {
   updatePersonList();
 }
 
@@ -302,21 +321,7 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
     return;
   }
 
-  const sortedPeople = [...people].sort((a, b) => {
-    const parseDate = (text) => {
-      const [day, monthName, year] = text.split(' ');
-      const months = {
-        januari: 0,
-        februari: 1,
-      };
-      return new Date(
-        parseInt(year),
-        months[monthName.toLowerCase()],
-        parseInt(day)
-      );
-    };
-    return parseDate(a.date) - parseDate(b.date);
-  });
+  const sortedPeople = [...people].sort(sortByDate);
 
   const totalEarned = sortedPeople.reduce(
     (sum, p) => sum + (p.amount || 1) * 8,
@@ -326,29 +331,23 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 
   const data = sortedPeople.map((p, index) => ({
     Nummer: (index + 1).toString().padStart(3, '0'),
-    Datum: p.date,
-    Locatie: p.location,
+    Datum: formatDateToDutch(p.date),
+    Locatie: p.location || 'Geen locatie',
     Naam: p.lastName,
     Voornaam: p.firstName,
     Aantal: p.amount || 1,
   }));
 
-  // Voeg gegevens toe met kolomtitels startend op rij 2 (A2)
   const worksheet = XLSX.utils.json_to_sheet(data, { origin: 'A3' });
-
-  // Voeg totaalbedrag op rij 1 toe
   XLSX.utils.sheet_add_aoa(worksheet, [totalRow], { origin: 'A1' });
 
-  // Merge totaalbedrag over kolommen A–F
   worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
 
-  // ✅ Vetgedrukte totaalbedrag rij
   worksheet['A1'].s = {
     font: { bold: true, sz: 14 },
     alignment: { horizontal: 'center' },
   };
 
-  // ✅ Vetgedrukte kolomkoppen (rij 2)
   const headers = ['A3', 'B3', 'C3', 'D3', 'E3', 'F3'];
   headers.forEach((cell) => {
     if (worksheet[cell]) {
@@ -360,14 +359,13 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
     }
   });
 
-  // Kolombreedtes instellen
   worksheet['!cols'] = [
-    { wch: 10 }, // Nummer
-    { wch: 18 }, // Datum
-    { wch: 20 }, // Locatie
-    { wch: 20 }, // Naam
-    { wch: 20 }, // Voornaam
-    { wch: 10 }, // Aantal
+    { wch: 10 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 10 },
   ];
 
   const workbook = XLSX.utils.book_new();
@@ -378,11 +376,24 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 
 document.getElementById('date').addEventListener('change', function () {
   const selectedDate = this.value;
-  const location = dateToLocationMap[selectedDate] || '';
-  document.getElementById('location').value = location;
+  const locationField = document.getElementById('location');
+  
+  if (selectedDate) {
+    const location = dateToLocationMap[selectedDate] || '';
+    locationField.value = location;
+    locationField.readOnly = true;
+  } else {
+    locationField.readOnly = false;
+    locationField.value = '';
+  }
 });
 
 function downloadImageWithText(person) {
+  if (!person.date) {
+    alert('Kan geen ticket genereren: geen datum geselecteerd.');
+    return;
+  }
+
   const img = new Image();
   img.src = 'Ticket Er was eens ... Rare wereld VK.jpg';
 
@@ -398,18 +409,16 @@ function downloadImageWithText(person) {
     ctx.fillStyle = 'black';
     ctx.textAlign = 'center';
 
-    // ✏️ HIER pas je de posities aan (X, Y)
     const nameX = 860;
     const nameY = 396;
-
     const dateX = 695;
     const dateY = 315;
-
     const locationX = 690;
     const locationY = 356;
 
-    // 🖊️ Tekst tekenen op aangepaste posities
-    ctx.fillText(person.date, dateX, dateY);
+    const dutchDate = formatDateToDutch(person.date);
+
+    ctx.fillText(dutchDate, dateX, dateY);
     ctx.fillText(person.location, locationX, locationY);
     ctx.fillText(`${person.lastName} ${person.firstName}`, nameX, nameY);
 
@@ -417,5 +426,9 @@ function downloadImageWithText(person) {
     link.download = `${person.lastName}_${person.firstName}-Ticket-Rare_Wereld.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+  };
+
+  img.onerror = () => {
+    alert('Fout: kan de afbeelding niet laden. Controleer of het bestand bestaat.');
   };
 }
