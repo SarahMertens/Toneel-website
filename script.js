@@ -21,7 +21,14 @@ function savePeople() {
 }
 
 document.getElementById('date').addEventListener('change', function () {
-  document.getElementById('location').value = dateToLocationMap[this.value] || '';
+  const locationInput = document.getElementById('location');
+  if (!this.value) {
+    locationInput.value = '';
+    locationInput.readOnly = true;
+  } else {
+    locationInput.value = dateToLocationMap[this.value] || '';
+    locationInput.readOnly = true;
+  }
 });
 
 document.getElementById('addPersonForm').addEventListener('submit', function (e) {
@@ -30,22 +37,19 @@ document.getElementById('addPersonForm').addEventListener('submit', function (e)
   const firstName = document.getElementById('firstName').value.trim();
   const lastName = document.getElementById('lastName').value.trim();
   const date = document.getElementById('date').value;
-  const location = dateToLocationMap[date] || '';
+  const location = date ? dateToLocationMap[date] || '' : '';
   const amount = parseInt(document.getElementById('amount').value, 10) || 1;
 
-  if (!date) {
-    alert('Kies eerst een datum.');
-    return;
-  }
-
-  const existingIdx = people.findIndex(
-    (p) => p.firstName.toLowerCase() === firstName.toLowerCase() &&
-           p.lastName.toLowerCase() === lastName.toLowerCase() &&
-           p.date === date
-  );
-  if (existingIdx !== -1) {
-    if (!confirm('Je hebt deze persoon met deze datum al toegevoegd. Wil je dit TOCH doen (bv extra ticket voor vriend)?')) {
-      return;
+  if (date) {
+    const existingIdx = people.findIndex(
+      (p) => p.firstName.toLowerCase() === firstName.toLowerCase() &&
+             p.lastName.toLowerCase() === lastName.toLowerCase() &&
+             p.date === date
+    );
+    if (existingIdx !== -1) {
+      if (!confirm('Je hebt deze persoon met deze datum al toegevoegd. Wil je dit TOCH doen (bv extra ticket voor vriend)?')) {
+        return;
+      }
     }
   }
 
@@ -67,9 +71,11 @@ function updatePersonList() {
   const totalEarned = filtered.reduce((sum, p) => sum + (p.amount || 1)*8, 0);
   document.getElementById('totalEarned').textContent = `Totaal verdiend: €${totalEarned}`;
 
+  // Statistiek
   const dateCounts = {};
   filtered.forEach(p => {
-    dateCounts[p.date] = (dateCounts[p.date] || 0) + (p.amount || 1);
+    const d = p.date || 'Nog niet gekozen';
+    dateCounts[d] = (dateCounts[d] || 0) + (p.amount || 1);
   });
   document.getElementById('locationStats').innerHTML =
     '<strong>Aantal personen per datum:</strong><ul>' +
@@ -82,22 +88,27 @@ function updatePersonList() {
     return;
   }
   filtered.forEach((person, idx) => {
-    const li = document.createElement('li');
     const label = person.amount == 1 ? 'persoon' : 'personen';
+    const li = document.createElement('li');
+    let knopHtml = '';
+    if (person.date) {
+      knopHtml += `<button onclick="downloadImageWithText(people[${people.indexOf(person)}])">Download Ticket</button>`;
+    }
+    knopHtml += `
+      <button onclick="showEditForm(${people.indexOf(person)},this.parentNode.parentNode)">Wijzig</button>
+      <button onclick="removePerson(${people.indexOf(person)})">Verwijder</button>
+    `;
     li.innerHTML = `
       <div class="person-info">
-        ${person.firstName} ${person.lastName} – ${person.date} – ${person.location} – ${person.amount || 1} ${label}
+        ${person.firstName} ${person.lastName} – ${person.date || 'Nog niet gekozen'} – ${person.location || ""} – ${person.amount || 1} ${label}
       </div>
       <div class="knoppen-wrapper">
-        <button onclick="downloadImageWithText(people[${people.indexOf(person)}])">Download Ticket</button>
-        <button onclick="showEditForm(${people.indexOf(person)},this.parentNode.parentNode)">Wijzig</button>
-        <button onclick="removePerson(${people.indexOf(person)})">Verwijder</button>
+        ${knopHtml}
       </div>
     `;
     list.appendChild(li);
   });
 }
-
 window.removePerson = function(idx) {
   if (confirm('Weet je zeker dat je deze persoon wilt verwijderen?')) {
     people.splice(idx, 1);
@@ -113,8 +124,8 @@ window.showEditForm = function(idx, li) {
   editForm.innerHTML = `
     <input type="text" name="firstName" value="${person.firstName}" required>
     <input type="text" name="lastName" value="${person.lastName}" required>
-    <select name="date" required>
-      <option value="" disabled ${!person.date ? "selected" : ""}>&laquo;&laquo; Kies een datum &raquo;&raquo;</option>
+    <select name="date">
+      <option value="">Nog niet gekozen</option>
       <option value="31 januari 2026"${person.date === "31 januari 2026" ? " selected" : ""}>31 januari 2026</option>
       <option value="1 februari 2026"${person.date === "1 februari 2026" ? " selected" : ""}>1 februari 2026</option>
       <option value="7 februari 2026"${person.date === "7 februari 2026" ? " selected" : ""}>7 februari 2026</option>
@@ -130,16 +141,24 @@ window.showEditForm = function(idx, li) {
   `;
   const dateSel = editForm.querySelector('[name="date"]');
   const locInput = editForm.querySelector('[name="location"]');
-  dateSel.addEventListener('change', function() {
-    locInput.value = dateToLocationMap[this.value] || '';
-  });
-  locInput.value = dateToLocationMap[person.date] || '';
+  function updateEditLocation() {
+    if (!dateSel.value) {
+      locInput.value = '';
+      locInput.readOnly = true;
+    } else {
+      locInput.value = dateToLocationMap[dateSel.value] || '';
+      locInput.readOnly = true;
+    }
+  }
+  dateSel.addEventListener('change', updateEditLocation);
+  updateEditLocation();
+
   editForm.onsubmit = function(e) {
     e.preventDefault();
     person.firstName = editForm.firstName.value.trim();
     person.lastName = editForm.lastName.value.trim();
     person.date = editForm.date.value;
-    person.location = dateToLocationMap[person.date] || '';
+    person.location = person.date ? (dateToLocationMap[person.date] || '') : '';
     person.amount = parseInt(editForm.amount.value, 10) || 1;
     savePeople();
     updatePersonList();
@@ -160,8 +179,8 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
   const totalEarned = sorted.reduce((sum, p) => sum + (p.amount || 1) * 8, 0);
   const data = sorted.map((p, i) => ({
     Nummer: (i+1).toString().padStart(3,'0'),
-    Datum: p.date,
-    Locatie: p.location,
+    Datum: p.date || 'Nog niet gekozen',
+    Locatie: p.location || '',
     Naam: p.lastName,
     Voornaam: p.firstName,
     Aantal: p.amount || 1,
@@ -176,33 +195,27 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 });
 
 function downloadImageWithText(person) {
+  if (!person.date) {
+    alert('Ticket downloaden kan alleen bij personen met een datum!');
+    return;
+  }
   const img = new Image();
   img.src = 'Ticket Er was eens ... Rare wereld VK.jpg';
-
   img.onload = () => {
     const canvas = document.createElement('canvas');
     canvas.width = img.width;
     canvas.height = img.height;
-
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
-
     ctx.font = '28px Arial';
     ctx.fillStyle = 'black';
     ctx.textAlign = 'center';
-
-    // Pas eventueel aan voor jouw afbeelding
-    const nameX = 860;
-    const nameY = 396;
-    const dateX = 695;
-    const dateY = 315;
-    const locationX = 690;
-    const locationY = 356;
-
+    const nameX = 860, nameY = 396;
+    const dateX = 695, dateY = 315;
+    const locationX = 690, locationY = 356;
     ctx.fillText(person.date, dateX, dateY);
     ctx.fillText(person.location, locationX, locationY);
     ctx.fillText(`${person.lastName} ${person.firstName}`, nameX, nameY);
-
     const link = document.createElement('a');
     link.download = `${person.lastName}_${person.firstName}-Ticket-Rare_Wereld.png`;
     link.href = canvas.toDataURL('image/png');
@@ -213,7 +226,7 @@ function downloadImageWithText(person) {
   };
 }
 
-// Initial display
+// Bij laden direct overzicht tonen als actief
 if (document.getElementById('overzicht').classList.contains('active')) {
   updatePersonList();
 }
