@@ -74,21 +74,30 @@ function updatePersonList() {
   const filtered = people.filter(p =>
     `${p.firstName} ${p.lastName} ${p.date} ${p.location}`.toLowerCase().includes(search)
   );
+
   filtered.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
 
   const totalEarned = filtered.reduce((sum, p) => sum + (p.amount || 1)*8, 0);
   document.getElementById('totalEarned').textContent = `Totaal verdiend: €${totalEarned}`;
 
-  // Statistieken per datum
-  const dateCounts = {};
-  filtered.forEach(p => {
-    const d = p.date || 'Nog niet gekozen';
-    dateCounts[d] = (dateCounts[d] || 0) + (p.amount || 1);
-  });
-  document.getElementById('locationStats').innerHTML =
-    '<strong>Aantal personen per datum:</strong><ul>' +
-    Object.entries(dateCounts).map(([d, n]) => `<li>${d}: ${n}</li>`).join('') +
-    '</ul>';
+  // Statistieken per datum: sorteer op volgorde voorkomen in dateToLocationMap
+const dateOrder = Object.keys(dateToLocationMap);
+const dateCounts = {};
+filtered.forEach(p => {
+  const d = p.date || 'Nog niet gekozen';
+  dateCounts[d] = (dateCounts[d] || 0) + (p.amount || 1);
+});
+
+// Sorteer: eerst bekende datums, dan 'Nog niet gekozen' en evt. vreemde datums
+const orderedStats = [
+  ...dateOrder.filter(d => dateCounts[d]),
+  ...Object.keys(dateCounts).filter(d => !dateOrder.includes(d))
+];
+
+document.getElementById('locationStats').innerHTML =
+  '<strong>Aantal personen per datum:</strong><ul>' +
+  orderedStats.map(d => `<li>${d}: ${dateCounts[d]}</li>`).join('') +
+  '</ul>';
 
   list.innerHTML = '';
   if (!filtered.length) {
@@ -223,10 +232,27 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
     Voornaam: p.firstName,
     Aantal: p.amount || 1,
   }));
-  const worksheet = XLSX.utils.json_to_sheet(data, { origin: "A3" });
-  XLSX.utils.sheet_add_aoa(worksheet, [[`Totaal bedrag: €${totalEarned}`]], {origin: "A1"});
-  worksheet['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:5 } }];
-  worksheet['!cols'] = [{wch:10},{wch:18},{wch:20},{wch:20},{wch:20},{wch:10}];
+  // Voeg aantal personen per datum toe aan het Excel-bestand
+const allDateCounts = {};
+sorted.forEach(p => {
+  const d = p.date || 'Nog niet gekozen';
+  allDateCounts[d] = (allDateCounts[d] || 0) + (p.amount || 1);
+});
+// Sorteer datum-statistieken zoals in de UI
+const excelDateOrder = Object.keys(dateToLocationMap);
+const statsRows = [
+  ["Aantal personen per datum:"],
+  ...[
+    ...excelDateOrder.filter(d => allDateCounts[d]),
+    ...Object.keys(allDateCounts).filter(d => !excelDateOrder.includes(d))
+  ].map(d => [d, allDateCounts[d]])
+];
+
+ const worksheet = XLSX.utils.json_to_sheet(data, { origin: "A3" });
+XLSX.utils.sheet_add_aoa(worksheet, [[`Totaal bedrag: €${totalEarned}`]], {origin: "A1"});
+XLSX.utils.sheet_add_aoa(worksheet, statsRows, {origin: "A2"});
+worksheet['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:5 } }];
+worksheet['!cols'] = [{wch:10},{wch:18},{wch:20},{wch:20},{wch:20},{wch:10}];
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Toneelgroep_De_Ballon');
   XLSX.writeFile(workbook, 'Toneelgroep_De_Ballon.xlsx');
@@ -268,4 +294,5 @@ function downloadImageWithText(person) {
 if (document.getElementById('overzicht').classList.contains('active')) {
   updatePersonList();
 }
+
 
