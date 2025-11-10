@@ -50,7 +50,7 @@ document.getElementById('addPersonForm').addEventListener('submit', function (e)
     );
     if (existingIdx !== -1) {
       if (confirm('Deze persoon staat al op deze datum. Wil je het aantal verhogen?')) {
-        people[existingIdx].amount = (parseInt(people[existingIdx].amount, 10) || 1) + amount;
+        people[existingIdx].amount = (parseInt(people[existingIdx].amount, 100) || 1) + amount;
         savePeople();
         this.reset();
         document.getElementById('location').value = '';
@@ -144,7 +144,7 @@ window.showEditForm = function(idx, li) {
       <option value="22 februari 2026"${person.date === "22 februari 2026" ? " selected" : ""}>22 februari 2026</option>
     </select>
     <input type="text" name="location" value="${person.location || ''}" readonly>
-    <input type="number" name="amount" min="1" max="10" value="${person.amount || 1}" required>
+    <input type="number" name="amount" min="1" max="100" value="${person.amount || 1}" required>
     <button type="submit">Opslaan</button>
     <button type="button" class="cancel">Annuleer</button>
   `;
@@ -168,7 +168,7 @@ window.showEditForm = function(idx, li) {
     const newLastName = editForm.lastName.value.trim();
     const newDate = editForm.date.value;
     const newLocation = newDate ? (dateToLocationMap[newDate] || "") : "";
-    const newAmount = parseInt(editForm.amount.value, 10) || 1;
+    const newAmount = parseInt(editForm.amount.value, 100) || 1;
 
     // Kijk of er al een ANDERE persoon met dezelfde naam, datum bestaat
     const existingIdx = people.findIndex(
@@ -180,7 +180,7 @@ window.showEditForm = function(idx, li) {
     if (existingIdx !== -1) {
       if (confirm('Deze persoon staat al op deze datum. Wil je het aantal samenvoegen?')) {
         // Tel bij andere op, verwijder huidige
-        people[existingIdx].amount = (parseInt(people[existingIdx].amount, 10) || 1) + newAmount;
+        people[existingIdx].amount = (parseInt(people[existingIdx].amount, 100) || 1) + newAmount;
         people.splice(idx, 1);
         savePeople();
         updatePersonList();
@@ -268,3 +268,4 @@ function downloadImageWithText(person) {
 if (document.getElementById('overzicht').classList.contains('active')) {
   updatePersonList();
 }
+
