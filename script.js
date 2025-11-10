@@ -39,7 +39,7 @@ document.getElementById('addPersonForm').addEventListener('submit', function (e)
   const lastName = document.getElementById('lastName').value.trim();
   const date = document.getElementById('date').value;
   const location = date ? dateToLocationMap[date] || '' : '';
-  const amount = parseInt(document.getElementById('amount').value, 10) || 1;
+  const amount = parseInt(document.getElementById('amount').value, 100) || 1;
 
   // Duplicaat check enkel als datum is ingevuld
   if (date) {
@@ -294,5 +294,6 @@ function downloadImageWithText(person) {
 if (document.getElementById('overzicht').classList.contains('active')) {
   updatePersonList();
 }
+
 
 
