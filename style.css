@@ -240,8 +240,8 @@ ul#personList .wijzig-knop:hover {
 #searchInput {
   padding: 12px 16px;
   font-size: 16px;
-  width: 800px; /* of 100% als je wilt dat het meegroeit */
-  max-width: 100%;
+  width: 100%;
+  max-width: 600px; /* bijv. voor desktop */
   border: 1px solid #ccc;
   border-radius: 8px;
   transition: border-color 0.2s ease;
@@ -254,6 +254,11 @@ ul#personList .wijzig-knop:hover {
 }
 
 @media (max-width: 600px) {
+  #searchInput {
+    width: 100%;
+    max-width: 100%;
+    font-size: 1em; /* optioneel voor grotere tekst */
+  }
   /* Basis layout */
   body {
     margin: 0;
@@ -337,3 +342,4 @@ ul#personList .wijzig-knop:hover {
     cursor: pointer;
   }
 }
+
