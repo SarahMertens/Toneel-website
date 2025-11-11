@@ -11,12 +11,13 @@ const dateToLocationMap = {
 
 // Firebase config object uit je Firebase Console! (voorbeeld)
 const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyDEkywEVfhNwxS2yWMRmyphnVMjN4SCKiU",
+  authDomain: "toneel-website.firebaseapp.com",
+  projectId: "toneel-website",
+  storageBucket: "toneel-website.firebasestorage.app",
+  messagingSenderId: "378010318331",
+  appId: "1:378010318331:web:9557d06b81506b432a475e",
+  measurementId: "G-KED2S52LH0"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -336,5 +337,6 @@ if (document.getElementById('overzicht').classList.contains('active')) {
   alert('Er is een fout met de database!');
   console.error(err);
 }
+
 
 
