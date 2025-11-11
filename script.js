@@ -75,7 +75,7 @@ document.getElementById('addPersonForm').addEventListener('submit', async functi
   const lastName = document.getElementById('lastName').value.trim();
   const date = document.getElementById('date').value;
   const location = date ? dateToLocationMap[date] || '' : '';
-  const amount = parseInt(document.getElementById('amount').value, 100) || 1;
+  const amount = parseInt(document.getElementById('amount').value, 10) || 1;
 
   // Duplicaat check enkel als datum is ingevuld
   const existing = people.find(
@@ -216,7 +216,7 @@ window.showEditForm = function(idx, li) {
     const newLastName = editForm.lastName.value.trim();
     const newDate = editForm.date.value;
     const newLocation = newDate ? (dateToLocationMap[newDate] || "") : "";
-    const newAmount = parseInt(editForm.amount.value, 100) || 1;
+    const newAmount = parseInt(editForm.amount.value, 10) || 1;
 
     // Check of er een andere (niet huidige) duplicaat is
     const existing = people.find((p, i) =>
@@ -288,15 +288,14 @@ const statsRows = [
 ];
 
  const worksheet = XLSX.utils.json_to_sheet(data, { origin: "A3" });
-XLSX.utils.sheet_add_aoa(worksheet, [[`Totaal bedrag: €${totalEarned}`]], {origin: "A1"});
-XLSX.utils.sheet_add_aoa(worksheet, statsRows, {origin: "A2"});
-worksheet['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:5 } }];
-worksheet['!cols'] = [{wch:10},{wch:18},{wch:20},{wch:20},{wch:20},{wch:10}];
+  XLSX.utils.sheet_add_aoa(worksheet, [[`Totaal bedrag: €${totalEarned}`]], {origin: "A1"});
+  worksheet['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:5 } }];
+  worksheet['!cols'] = [{wch:10},{wch:18},{wch:20},{wch:20},{wch:20},{wch:10}];
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Toneelgroep_De_Ballon');
   XLSX.writeFile(workbook, 'Toneelgroep_De_Ballon.xlsx');
 });
-
+  
 function downloadImageWithText(person) {
   if (!person.date) {
     alert('Ticket downloaden kan alleen bij personen met een datum!');
@@ -337,6 +336,7 @@ if (document.getElementById('overzicht').classList.contains('active')) {
   alert('Er is een fout met de database!');
   console.error(err);
 }
+
 
 
 
