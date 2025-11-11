@@ -261,7 +261,7 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
     alert('Er zijn geen personen om te exporteren.');
     return;
   }
-  const sorted = [...people].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  const sorted = [...people].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
   const totalEarned = sorted.reduce((sum, p) => sum + (p.amount || 1) * 8, 0);
   const data = sorted.map((p, i) => ({
     Nummer: (i+1).toString().padStart(3,'0'),
@@ -336,6 +336,7 @@ if (document.getElementById('overzicht').classList.contains('active')) {
   alert('Er is een fout met de database!');
   console.error(err);
 }
+
 
 
 
