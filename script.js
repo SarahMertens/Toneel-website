@@ -1,3 +1,4 @@
+try {
 const dateToLocationMap = {
   '31 januari 2026': 'OC De Boeie',
   '1 februari 2026': 'OC De Boeie',
@@ -100,13 +101,6 @@ document.getElementById('addPersonForm').addEventListener('submit', async functi
     firstName, lastName, date, location, amount, addedAt: Date.now()
   });
   await loadPeopleFromFirebase();
-  this.reset();
-  document.getElementById('location').value = '';
-  showPage('overzicht');
-});
-
-  people.unshift({ firstName, lastName, date, location, amount, addedAt: Date.now() });
-  savePeople();
   this.reset();
   document.getElementById('location').value = '';
   showPage('overzicht');
@@ -338,7 +332,9 @@ function downloadImageWithText(person) {
 if (document.getElementById('overzicht').classList.contains('active')) {
   loadPeopleFromFirebase();
 }
-
-
+} catch (err) {
+  alert('Er is een fout met de database!');
+  console.error(err);
+}
 
 
