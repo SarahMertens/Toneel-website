@@ -8,16 +8,50 @@ const dateToLocationMap = {
   '22 februari 2026': 'OC De Ballon'
 };
 
-let people = JSON.parse(localStorage.getItem('peopleList')) || [];
+// Firebase config object uit je Firebase Console! (voorbeeld)
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let people = [];
+
+// Ophalen uit Firestore bij laden
+function loadPeopleFromFirebase() {
+  return db.collection('people')
+    .get()
+    .then(snapshot => {
+      people = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+      updatePersonList();
+    });
+}
+
+//Opslaan naar Firestore
+function savePersonToFirebase(person) {
+  return db.collection('people').add(person);
+}
+
+// Verwijderen uit Firestore
+function removePersonFromFirebase(id) {
+  return db.collection('people').doc(id).delete();
+}
+
+// Wijzigen in Firestore
+function updatePersonInFirebase(id, updated) {
+  return db.collection('people').doc(id).set(updated);
+}
 
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(pageId).classList.add('active');
-  if (pageId === 'overzicht') updatePersonList();
-}
-
-function savePeople() {
-  localStorage.setItem('peopleList', JSON.stringify(people));
+  if (pageId === 'overzicht') loadPeopleFromFirebase();
 }
 
 document.getElementById('date').addEventListener('change', function () {
@@ -32,7 +66,7 @@ document.getElementById('date').addEventListener('change', function () {
 });
 
 // Toevoegen -- combineer aantallen als zelfde persoon+datum!
-document.getElementById('addPersonForm').addEventListener('submit', function (e) {
+document.getElementById('addPersonForm').addEventListener('submit', async function (e) {
   e.preventDefault();
 
   const firstName = document.getElementById('firstName').value.trim();
@@ -42,23 +76,34 @@ document.getElementById('addPersonForm').addEventListener('submit', function (e)
   const amount = parseInt(document.getElementById('amount').value, 100) || 1;
 
   // Duplicaat check enkel als datum is ingevuld
-  if (date) {
-    const existingIdx = people.findIndex(
-      (p) => p.firstName.toLowerCase() === firstName.toLowerCase() &&
-             p.lastName.toLowerCase() === lastName.toLowerCase() &&
-             p.date === date
-    );
-    if (existingIdx !== -1) {
-      if (confirm('Deze persoon staat al op deze datum. Wil je het aantal verhogen?')) {
-        people[existingIdx].amount = (parseInt(people[existingIdx].amount, 100) || 1) + amount;
-        savePeople();
-        this.reset();
-        document.getElementById('location').value = '';
-        showPage('overzicht');
-      }
-      return;
+  const existing = people.find(
+    (p) => p.firstName.toLowerCase() === firstName.toLowerCase() &&
+           p.lastName.toLowerCase() === lastName.toLowerCase() &&
+           p.date === date
+  );
+  
+  if (existing && date) {
+    if (confirm('Deze persoon staat al op deze datum. Wil je het aantal verhogen?')) {
+      const newAmount = Math.min((parseInt(existing.amount, 100) || 1) + amount, 100);
+      await updatePersonInFirebase(existing.id, {
+        ...existing,
+        amount: newAmount
+      });
+      await loadPeopleFromFirebase();
+      this.reset();
+      document.getElementById('location').value = '';
+      showPage('overzicht');
     }
+    return;
   }
+  await savePersonToFirebase({
+    firstName, lastName, date, location, amount, addedAt: Date.now()
+  });
+  await loadPeopleFromFirebase();
+  this.reset();
+  document.getElementById('location').value = '';
+  showPage('overzicht');
+});
 
   people.unshift({ firstName, lastName, date, location, amount, addedAt: Date.now() });
   savePeople();
@@ -127,11 +172,10 @@ document.getElementById('locationStats').innerHTML =
   });
 }
 
-window.removePerson = function(idx) {
+window.removePerson = async function(idx) {
   if (confirm('Weet je zeker dat je deze persoon wilt verwijderen?')) {
-    people.splice(idx, 1);
-    savePeople();
-    updatePersonList();
+    await removePersonFromFirebase(people[idx].id);
+    await loadPeopleFromFirebase();
   }
 };
 
@@ -171,7 +215,7 @@ window.showEditForm = function(idx, li) {
   dateSel.addEventListener('change', updateEditLocation);
   updateEditLocation();
 
-  editForm.onsubmit = function(e) {
+  editForm.onsubmit = async function(e) {
     e.preventDefault();
     const newFirstName = editForm.firstName.value.trim();
     const newLastName = editForm.lastName.value.trim();
@@ -179,38 +223,38 @@ window.showEditForm = function(idx, li) {
     const newLocation = newDate ? (dateToLocationMap[newDate] || "") : "";
     const newAmount = parseInt(editForm.amount.value, 100) || 1;
 
-    // Kijk of er al een ANDERE persoon met dezelfde naam, datum bestaat
-    const existingIdx = people.findIndex(
-      (p, i) => i !== idx &&
-                p.firstName.toLowerCase() === newFirstName.toLowerCase() &&
-                p.lastName.toLowerCase() === newLastName.toLowerCase() &&
-                p.date === newDate
+    // Check of er een andere (niet huidige) duplicaat is
+    const existing = people.find((p, i) =>
+      i !== idx &&
+      p.firstName.toLowerCase() === newFirstName.toLowerCase() &&
+      p.lastName.toLowerCase() === newLastName.toLowerCase() &&
+      p.date === newDate
     );
-    if (existingIdx !== -1) {
+    if (existing) {
       if (confirm('Deze persoon staat al op deze datum. Wil je het aantal samenvoegen?')) {
-        // Tel bij andere op, verwijder huidige
-        people[existingIdx].amount = (parseInt(people[existingIdx].amount, 100) || 1) + newAmount;
-        people.splice(idx, 1);
-        savePeople();
-        updatePersonList();
+        const total = Math.min((parseInt(existing.amount, 10) || 1) + newAmount, 100);
+        await updatePersonInFirebase(existing.id, { ...existing, amount: total });
+        await removePersonFromFirebase(person.id);
+        await loadPeopleFromFirebase();
         return;
       } else {
-        // Annuleer wijziging
-        updatePersonList();
+        await loadPeopleFromFirebase();
         return;
       }
     }
 
     // Normaal opslaan
-    person.firstName = newFirstName;
-    person.lastName = newLastName;
-    person.date = newDate;
-    person.location = newLocation;
-    person.amount = newAmount;
-    savePeople();
-    updatePersonList();
+    await updatePersonInFirebase(person.id, {
+      ...person,
+      firstName: newFirstName,
+      lastName: newLastName,
+      date: newDate,
+      location: newLocation,
+      amount: newAmount
+    });
+    await loadPeopleFromFirebase();
   };
-  editForm.querySelector('.cancel').onclick = updatePersonList;
+  editForm.querySelector('.cancel').onclick = loadPeopleFromFirebase;
   li.innerHTML = "";
   li.appendChild(editForm);
 }
@@ -292,8 +336,9 @@ function downloadImageWithText(person) {
 
 // Bij laden direct overzicht tonen als actief
 if (document.getElementById('overzicht').classList.contains('active')) {
-  updatePersonList();
+  loadPeopleFromFirebase();
 }
+
 
 
 
