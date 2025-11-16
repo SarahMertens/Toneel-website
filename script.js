@@ -1,5 +1,7 @@
+document.addEventListener('DOMContentLoaded', function() {
 try {
 const dateToLocationMap = {
+  '24 januari 2026': 'OC Het Kasteeltje',
   '31 januari 2026': 'OC De Boeie',
   '1 februari 2026': 'OC De Boeie',
   '7 februari 2026': 'OC De Schelpe',
@@ -23,7 +25,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let people = [];
+window.people = [];
 
 // Ophalen uit Firestore bij laden
 function loadPeopleFromFirebase() {
@@ -302,7 +304,7 @@ function downloadImageWithText(person) {
     return;
   }
   const img = new Image();
-  img.src = 'Ticket Er was eens ... Rare wereld VK.jpg';
+  img.src = 'Ticket_Rare_Wereld_VK.jpg';
   img.onload = () => {
     const canvas = document.createElement('canvas');
     canvas.width = img.width;
@@ -336,6 +338,7 @@ if (document.getElementById('overzicht').classList.contains('active')) {
   alert('Er is een fout met de database!');
   console.error(err);
 }
+});
 
 
 
