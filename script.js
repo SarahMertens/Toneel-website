@@ -1,4 +1,3 @@
-document.addEventListener('DOMContentLoaded', function() {
 try {
 const dateToLocationMap = {
   '24 januari 2026': 'OC Het Kasteeltje',
@@ -339,7 +338,7 @@ if (document.getElementById('overzicht').classList.contains('active')) {
   alert('Er is een fout met de database!');
   console.error(err);
 }
-});
+
 
 
 
