@@ -184,6 +184,7 @@ window.showEditForm = function(idx, li) {
     <input type="text" name="lastName" value="${person.lastName}" required>
     <select name="date">
       <option value="">Nog niet gekozen</option>
+       <option value="24 januari 2026"${person.date === "24 januari 2026" ? " selected" : ""}>24 januari 2026</option>
       <option value="31 januari 2026"${person.date === "31 januari 2026" ? " selected" : ""}>31 januari 2026</option>
       <option value="1 februari 2026"${person.date === "1 februari 2026" ? " selected" : ""}>1 februari 2026</option>
       <option value="7 februari 2026"${person.date === "7 februari 2026" ? " selected" : ""}>7 februari 2026</option>
@@ -338,6 +339,7 @@ if (document.getElementById('overzicht').classList.contains('active')) {
   alert('Er is een fout met de database!');
   console.error(err);
 }
+
 
 
 
