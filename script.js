@@ -329,6 +329,7 @@ function downloadImageWithText(person) {
     alert('Kan ticketafbeelding niet laden!');
   };
 }
+window.downloadImageWithText = downloadImageWithText;
 
 // Bij laden direct overzicht tonen als actief
 if (document.getElementById('overzicht').classList.contains('active')) {
@@ -339,6 +340,7 @@ if (document.getElementById('overzicht').classList.contains('active')) {
   console.error(err);
 }
 });
+
 
 
 
