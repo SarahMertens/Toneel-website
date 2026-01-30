@@ -259,40 +259,75 @@ window.showEditForm = function(idx, li) {
 document.getElementById('searchInput').addEventListener('input', updatePersonList);
 
 document.getElementById('downloadBtn').addEventListener('click', () => {
-  if (!people.length) {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+
+  // Gebruik gefilterde lijst indien filter actief is
+  const exportList = search
+    ? people.filter(p =>
+        `${p.firstName} ${p.lastName} ${p.date} ${p.location}`
+          .toLowerCase()
+          .includes(search)
+      )
+    : [...people];
+
+  if (!exportList.length) {
     alert('Er zijn geen personen om te exporteren.');
     return;
   }
-  const sorted = [...people].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
-  const totalEarned = sorted.reduce((sum, p) => sum + (p.amount || 1) * 8, 0);
+
+  const sorted = [...exportList].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+
+  const totalEarned = sorted.reduce(
+    (sum, p) => sum + (p.amount || 1) * 8,
+    0
+  );
+
   const data = sorted.map((p, i) => ({
-    Nummer: (i+1).toString().padStart(3,'0'),
+    Nummer: (i + 1).toString().padStart(3, '0'),
     Datum: p.date || 'Nog niet gekozen',
     Locatie: p.location || '',
     Naam: p.lastName,
     Voornaam: p.firstName,
-    Aantal: p.amount || 1,
+    Aantal: p.amount || 1
   }));
-  // Voeg aantal personen per datum toe aan het Excel-bestand
-const allDateCounts = {};
-sorted.forEach(p => {
-  const d = p.date || 'Nog niet gekozen';
-  allDateCounts[d] = (allDateCounts[d] || 0) + (p.amount || 1);
-});
-// Sorteer datum-statistieken zoals in de UI
-const excelDateOrder = Object.keys(dateToLocationMap);
-const statsRows = [
-  ["Aantal personen per datum:"],
-  ...[
-    ...excelDateOrder.filter(d => allDateCounts[d]),
-    ...Object.keys(allDateCounts).filter(d => !excelDateOrder.includes(d))
-  ].map(d => [d, allDateCounts[d]])
-];
 
- const worksheet = XLSX.utils.json_to_sheet(data, { origin: "A3" });
-  XLSX.utils.sheet_add_aoa(worksheet, [[`Totaal bedrag: €${totalEarned}`]], {origin: "A1"});
-  worksheet['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:5 } }];
-  worksheet['!cols'] = [{wch:10},{wch:18},{wch:20},{wch:20},{wch:20},{wch:10}];
+  // Statistieken per datum (alleen wat geëxporteerd wordt)
+  const dateCounts = {};
+  sorted.forEach(p => {
+    const d = p.date || 'Nog niet gekozen';
+    dateCounts[d] = (dateCounts[d] || 0) + (p.amount || 1);
+  });
+
+  const dateOrder = Object.keys(dateToLocationMap);
+  const statsRows = [
+    ['Aantal personen per datum:'],
+    ...[
+      ...dateOrder.filter(d => dateCounts[d]),
+      ...Object.keys(dateCounts).filter(d => !dateOrder.includes(d))
+    ].map(d => [d, dateCounts[d]])
+  ];
+
+  const worksheet = XLSX.utils.json_to_sheet(data, { origin: 'A3' });
+  XLSX.utils.sheet_add_aoa(
+    worksheet,
+    [[`Totaal bedrag: €${totalEarned}`]],
+    { origin: 'A1' }
+  );
+
+  XLSX.utils.sheet_add_aoa(worksheet, statsRows, {
+    origin: `A${data.length + 6}`
+  });
+
+  worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+  worksheet['!cols'] = [
+    { wch: 10 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 10 }
+  ];
+
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Toneelgroep_De_Ballon');
   XLSX.writeFile(workbook, 'Toneelgroep_De_Ballon.xlsx');
@@ -339,6 +374,7 @@ if (document.getElementById('overzicht').classList.contains('active')) {
   alert('Er is een fout met de database!');
   console.error(err);
 }
+
 
 
 
