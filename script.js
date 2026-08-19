@@ -7,7 +7,9 @@ const dateToLocationMap = {
   '8 februari 2026': 'OC De Schelpe',
   '14 februari 2026': 'OC De Blomme',
   '15 februari 2026': 'OC De Blomme',
-  '22 februari 2026': 'OC De Ballon'
+  '22 februari 2026': 'OC De Ballon',
+  '3 oktober 2026': 'OC \'t Viooltje',
+  '7 oktober 2026': 'Dienstencentrum Biezenbilk'
 };
 
 // Firebase config object uit je Firebase Console! (voorbeeld)
