@@ -185,16 +185,11 @@ window.showEditForm = function(idx, li) {
     <input type="text" name="firstName" value="${person.firstName}" required>
     <input type="text" name="lastName" value="${person.lastName}" required>
     <select name="date">
-      <option value="">Nog niet gekozen</option>
-       <option value="24 januari 2026"${person.date === "24 januari 2026" ? " selected" : ""}>24 januari 2026</option>
-      <option value="31 januari 2026"${person.date === "31 januari 2026" ? " selected" : ""}>31 januari 2026</option>
-      <option value="1 februari 2026"${person.date === "1 februari 2026" ? " selected" : ""}>1 februari 2026</option>
-      <option value="7 februari 2026"${person.date === "7 februari 2026" ? " selected" : ""}>7 februari 2026</option>
-      <option value="8 februari 2026"${person.date === "8 februari 2026" ? " selected" : ""}>8 februari 2026</option>
-      <option value="14 februari 2026"${person.date === "14 februari 2026" ? " selected" : ""}>14 februari 2026</option>
-      <option value="15 februari 2026"${person.date === "15 februari 2026" ? " selected" : ""}>15 februari 2026</option>
-      <option value="22 februari 2026"${person.date === "22 februari 2026" ? " selected" : ""}>22 februari 2026</option>
-    </select>
+  <option value="">Nog niet gekozen</option>
+  ${Object.keys(dateToLocationMap)
+    .map(date => `<option value="${date}"${person.date === date ? ' selected' : ''}>${date}</option>`)
+    .join('')}
+</select>
     <input type="text" name="location" value="${person.location || ''}" readonly>
     <input type="number" name="amount" min="1" max="100" value="${person.amount || 1}" required>
     <button type="submit">Opslaan</button>
