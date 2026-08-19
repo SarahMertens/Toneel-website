@@ -12,6 +12,15 @@ const dateToLocationMap = {
   '7 oktober 2026': 'Dienstencentrum Biezenbilk'
 };
 
+const dateSelect = document.getElementById('date');
+
+Object.keys(dateToLocationMap).forEach(date => {
+  const option = document.createElement('option');
+  option.value = date;
+  option.textContent = date;
+  dateSelect.appendChild(option);
+});
+
 // Firebase config object uit je Firebase Console! (voorbeeld)
 const firebaseConfig = {
   apiKey: "AIzaSyDEkywEVfhNwxS2yWMRmyphnVMjN4SCKiU",
