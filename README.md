@@ -1,6 +1,5 @@
 # Toneel-website
 
-
 The box office of Toneelgroep De Ballon for the play *Er was eens … Rare
 Wereld!*: who reserved how many seats for which performance, what that adds up
 to, an Excel list for the venues and a printable ticket per reservation.
@@ -28,7 +27,8 @@ without an account and without touching real data.
 - One button per performance that shows the seats booked and filters the list
 - Search by name, date or location; the totals follow what is on screen
 - Excel export (`.xlsx`) of the list that is shown
-- A ticket image with date, location and name, generated in the browser
+- A ticket image with date, location and name, generated in the browser.
+  The demo draws its own ticket, marked as not valid
 - Sign-in with e-mail and password; the session is kept between visits
 
 ## Tech stack
@@ -90,6 +90,16 @@ One-time setup in the [Firebase console](https://console.firebase.google.com/):
    matter).
 5. **Firestore Database → Rules**: paste the contents of `firestore.rules` and
    publish.
+
+## Deployment
+
+Every push to `main` builds, tests and publishes the app to GitHub Pages. This
+needs one repository setting: **Settings → Pages → Build and deployment →
+Source: GitHub Actions**.
+
+The workflow sets the `<base href>` to the repository name and copies
+`index.html` to `404.html`, so reloading a page such as `/toevoegen` works on
+GitHub Pages.
 
 ## Design decisions
 

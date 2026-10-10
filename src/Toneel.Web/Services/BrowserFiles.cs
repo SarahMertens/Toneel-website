@@ -1,5 +1,6 @@
 using Microsoft.JSInterop;
 using Toneel.Core.Export;
+using Toneel.Core.Schedule;
 
 namespace Toneel.Web.Services;
 
@@ -32,6 +33,24 @@ public sealed class BrowserFiles(IJSRuntime js) : IAsyncDisposable
             ticket.Date,
             ticket.Location,
             ticket.Name);
+    }
+
+    /// <summary>
+    /// The ticket of the demo: drawn from scratch, so it shows nothing but
+    /// the play and the invented reservation, and is marked as not valid.
+    /// </summary>
+    public async Task DownloadDemoTicketAsync(Ticket ticket, Production production)
+    {
+        var module = await ModuleAsync();
+        await module.InvokeVoidAsync(
+            "downloadDemoTicket",
+            ticket.FileName,
+            production.Company,
+            production.Title,
+            ticket.Date,
+            ticket.Location,
+            ticket.Name,
+            ticket.Seats);
     }
 
     private async Task<IJSObjectReference> ModuleAsync() =>

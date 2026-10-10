@@ -3,6 +3,7 @@
 @inject Production Production
 @inject BrowserFiles Files
 @inject Flash Flash
+@inject AuthState Auth
 
 <PageTitle>Reservaties – @Production.Company</PageTitle>
 
@@ -200,11 +201,19 @@ else
 
         try
         {
-            await Files.DownloadTicketAsync(ticket);
+            // The demo never uses the real ticket, which carries the organiser's contact details.
+            if (Auth.Mode == SessionMode.Demo)
+            {
+                await Files.DownloadDemoTicketAsync(ticket, Production);
+            }
+            else
+            {
+                await Files.DownloadTicketAsync(ticket);
+            }
         }
         catch (JSException)
         {
-            _error = "Het ticket kon niet gemaakt worden: de ticketafbeelding laadt niet.";
+            _error = "Het ticket kon niet gemaakt worden. Probeer het opnieuw.";
         }
     });
 

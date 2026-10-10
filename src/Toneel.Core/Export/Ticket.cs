@@ -3,8 +3,8 @@ using Toneel.Core.Schedule;
 
 namespace Toneel.Core.Export;
 
-/// <summary>The three lines printed on a ticket, and the name of the image file.</summary>
-public sealed record Ticket(string Date, string Location, string Name, string FileName)
+/// <summary>What is printed on a ticket, and the name of the image file.</summary>
+public sealed record Ticket(string Date, string Location, string Name, int Seats, string FileName)
 {
     /// <summary>Returns <c>null</c> for a reservation without a date: there is nothing to print yet.</summary>
     public static Ticket? For(Reservation reservation)
@@ -15,6 +15,7 @@ public sealed record Ticket(string Date, string Location, string Name, string Fi
             Date: DutchDate.Format(date),
             Location: reservation.Location,
             Name: $"{reservation.LastName} {reservation.FirstName}",
+            Seats: reservation.Seats,
             FileName: $"{FileSafe(reservation.LastName)}_{FileSafe(reservation.FirstName)}-Ticket-Rare_Wereld.png");
     }
 

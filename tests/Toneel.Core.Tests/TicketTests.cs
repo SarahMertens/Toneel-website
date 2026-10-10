@@ -7,12 +7,13 @@ public class TicketTests
     [Fact]
     public void Prints_date_location_and_name_with_the_surname_first()
     {
-        var ticket = Ticket.For(Sample.Reservation("Lotte", "Vermeulen"));
+        var ticket = Ticket.For(Sample.Reservation("Lotte", "Vermeulen", seats: 3));
 
         Assert.NotNull(ticket);
         Assert.Equal("24 januari 2026", ticket!.Date);
         Assert.Equal("Zaal Noord", ticket.Location);
         Assert.Equal("Vermeulen Lotte", ticket.Name);
+        Assert.Equal(3, ticket.Seats);
         Assert.Equal("Vermeulen_Lotte-Ticket-Rare_Wereld.png", ticket.FileName);
     }
 
