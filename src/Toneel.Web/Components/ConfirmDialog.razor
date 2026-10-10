@@ -1,0 +1,52 @@
+@* A question the user must answer before going on. Escape cancels. *@
+
+<div class="dialog-backdrop" @onkeydown="OnKeyDown">
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title">
+        <h2 id="dialog-title">@Title</h2>
+
+        @ChildContent
+
+        <div class="dialog__actions">
+            <button type="button" class="button" @ref="_cancelButton" disabled="@Busy" @onclick="OnCancel">
+                @CancelText
+            </button>
+            <button type="button" class="button @(Danger ? "button--danger" : "button--primary")"
+                    disabled="@Busy" @onclick="OnConfirm">
+                @ConfirmText
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ElementReference _cancelButton;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter, EditorRequired] public string ConfirmText { get; set; } = "";
+
+    [Parameter] public string CancelText { get; set; } = "Annuleren";
+
+    /// <summary>Marks the confirm button as destructive.</summary>
+    [Parameter] public bool Danger { get; set; }
+
+    /// <summary>Disables both buttons while the confirmed action is running.</summary>
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Start on the safe choice, so Enter does not delete anything by accident.
+        if (firstRender) await _cancelButton.FocusAsync();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && !Busy) await OnCancel.InvokeAsync();
+    }
+}

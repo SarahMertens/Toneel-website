@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Who may read and change reservations.
+//
+// The app's Firebase settings are public (every web app ships them to the
+// browser), so these rules are the lock on the data. Publish them in the
+// Firebase console under Firestore Database > Rules, or with
+// `firebase deploy --only firestore:rules`.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Signed in AND listed in the "admins" collection. Being signed in is not
+    // enough on its own: the document must be added by hand in the console,
+    // so creating an account does not give access to anything.
+    function isBoxOffice() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // The shape the app writes. Anything else is refused, whoever sends it.
+    function isReservation(data) {
+      return data.keys().hasOnly(['firstName', 'lastName', 'date', 'location', 'amount', 'addedAt'])
+        && data.keys().hasAll(['firstName', 'lastName', 'date', 'location', 'amount', 'addedAt'])
+        && data.firstName is string && data.firstName.size() > 0 && data.firstName.size() <= 60
+        && data.lastName is string && data.lastName.size() > 0 && data.lastName.size() <= 60
+        && data.date is string && data.date.size() <= 40
+        && data.location is string && data.location.size() <= 80
+        && data.amount is int && data.amount >= 1 && data.amount <= 100
+        && data.addedAt is int;
+    }
+
+    match /people/{reservationId} {
+      allow read, delete: if isBoxOffice();
+      allow create, update: if isBoxOffice() && isReservation(request.resource.data);
+    }
+
+    // Nobody can make themselves an admin from the app.
+    match /admins/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Everything not mentioned above is closed.
+  }
+}

@@ -1,0 +1,110 @@
+@page "/aanmelden"
+@layout EmptyLayout
+@using System.ComponentModel.DataAnnotations
+@inject AuthState Auth
+@inject NavigationManager Navigation
+@inject Production Production
+
+<PageTitle>Aanmelden – @Production.Company</PageTitle>
+
+<div class="door">
+    <div class="door__poster">
+        <p class="door__company">@Production.Company</p>
+        <p class="door__title">@Production.Title</p>
+        <p class="door__facts">
+            @Text.Count(Production.Performances.Count, "voorstelling", "voorstellingen") in Oostende,
+            @Text.Euro(Production.TicketPrice) per plaats.
+        </p>
+    </div>
+
+    <main class="door__desk">
+        <h1>Aan de kassa</h1>
+
+        @if (Auth.CanSignIn)
+        {
+            <EditForm Model="_input" OnValidSubmit="SignInAsync" class="form" novalidate>
+                <DataAnnotationsValidator />
+
+                <div class="field">
+                    <label for="email">E-mailadres</label>
+                    <InputText id="email" type="email" @bind-Value="_input.Email" autocomplete="username" />
+                    <ValidationMessage For="() => _input.Email" />
+                </div>
+
+                <div class="field">
+                    <label for="password">Wachtwoord</label>
+                    <InputText id="password" type="password" @bind-Value="_input.Password"
+                               autocomplete="current-password" />
+                    <ValidationMessage For="() => _input.Password" />
+                </div>
+
+                @if (_error is not null)
+                {
+                    <div class="message message--error" role="alert" data-testid="sign-in-error">
+                        <p>@_error</p>
+                    </div>
+                }
+
+                <div class="form__actions">
+                    <button type="submit" class="button button--primary" disabled="@_busy">Aanmelden</button>
+                </div>
+            </EditForm>
+        }
+
+        <div class="door__demo">
+            <p>
+                Geen account? De demo werkt met verzonnen namen die alleen in je eigen browser
+                bewaard worden.
+            </p>
+            <button type="button" class="button" disabled="@_busy" @onclick="StartDemoAsync">Demo openen</button>
+        </div>
+    </main>
+</div>
+
+@code {
+    private readonly SignInInput _input = new();
+    private string? _error;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        // Already signed in: there is nothing to do here.
+        if (Auth.Mode != SessionMode.SignedOut) Navigation.NavigateTo("", replace: true);
+    }
+
+    private async Task SignInAsync()
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            await Auth.SignInAsync(_input.Email, _input.Password);
+            Navigation.NavigateTo("");
+        }
+        catch (AuthException exception)
+        {
+            _error = exception.UserMessage;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task StartDemoAsync()
+    {
+        await Auth.StartDemoAsync();
+        Navigation.NavigateTo("");
+    }
+
+    private sealed class SignInInput
+    {
+        [Required(ErrorMessage = "Vul je e-mailadres in.")]
+        [EmailAddress(ErrorMessage = "Dit is geen geldig e-mailadres.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Vul je wachtwoord in.")]
+        public string Password { get; set; } = "";
+    }
+}

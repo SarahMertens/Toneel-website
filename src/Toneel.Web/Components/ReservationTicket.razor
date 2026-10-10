@@ -1,0 +1,48 @@
+@* One reservation, drawn as an admission ticket: seats on the stub, who and when on the body. *@
+
+<li class="ticket" data-testid="reservation">
+    <div class="ticket__stub">
+        <span class="ticket__seats">@Reservation.Seats</span>
+        <span class="ticket__unit">@(Reservation.Seats == 1 ? "plaats" : "plaatsen")</span>
+    </div>
+
+    <div class="ticket__body">
+        <p class="ticket__name">@Reservation.FullName</p>
+
+        @if (Reservation.Date is { } date)
+        {
+            <p class="ticket__when">@DutchDate.FormatWithWeekday(date), @Reservation.Location</p>
+        }
+        else
+        {
+            <p class="ticket__when ticket__when--open">Nog geen datum gekozen</p>
+        }
+    </div>
+
+    <div class="ticket__actions">
+        @if (Reservation.Date is not null)
+        {
+            <button type="button" disabled="@Busy" @onclick="() => OnTicket.InvokeAsync(Reservation)">
+                Ticket<span class="visually-hidden"> voor @Reservation.FullName downloaden</span>
+            </button>
+        }
+
+        <a href="wijzigen/@Uri.EscapeDataString(Reservation.Id)">
+            Wijzig<span class="visually-hidden"> @Reservation.FullName</span>
+        </a>
+
+        <button type="button" class="is-danger" disabled="@Busy" @onclick="() => OnDelete.InvokeAsync(Reservation)">
+            Verwijder<span class="visually-hidden"> @Reservation.FullName</span>
+        </button>
+    </div>
+</li>
+
+@code {
+    [Parameter, EditorRequired] public Reservation Reservation { get; set; } = default!;
+
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public EventCallback<Reservation> OnTicket { get; set; }
+
+    [Parameter] public EventCallback<Reservation> OnDelete { get; set; }
+}

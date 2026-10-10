@@ -1,0 +1,77 @@
+@page "/toevoegen"
+@using System.ComponentModel.DataAnnotations
+@inject ReservationService Reservations
+@inject NavigationManager Navigation
+@inject Flash Flash
+
+<PageTitle>Reservatie toevoegen</PageTitle>
+
+<div class="page--narrow">
+    <div class="page-head">
+        <h1>Reservatie toevoegen</h1>
+    </div>
+
+    <ReservationForm Model="_input" SubmitText="Reservatie toevoegen" OnSubmit="SubmitAsync"
+                     Busy="_busy" Error="@_error" />
+</div>
+
+@if (_duplicate is not null)
+{
+    <ConfirmDialog Title="Staat al op de lijst" ConfirmText="@($"{Text.Seats(_input.Seats)} bijtellen")"
+                   Busy="_busy" OnConfirm="MergeAsync" OnCancel="() => _duplicate = null">
+        <p>
+            <strong>@_duplicate.FullName</strong> heeft al @Text.Seats(_duplicate.Seats) op
+            @DutchDate.Format(_duplicate.Date!.Value). Met deze erbij worden het er
+            @Math.Min(_duplicate.Seats + _input.Seats, Reservation.MaxSeats).
+        </p>
+    </ConfirmDialog>
+}
+
+@code {
+    private readonly ReservationInput _input = new();
+    private Reservation? _duplicate;
+    private string? _error;
+    private bool _busy;
+
+    private Task SubmitAsync() => RunAsync(async () =>
+    {
+        // Check against the latest list: someone else may have added this person a minute ago.
+        _duplicate = ReservationService.FindDuplicate(await Reservations.GetAllAsync(), _input);
+        if (_duplicate is not null) return;
+
+        var saved = await Reservations.AddAsync(_input);
+        Done($"{saved.FullName} staat op de lijst met {Text.Seats(saved.Seats)}.");
+    });
+
+    private Task MergeAsync() => RunAsync(async () =>
+    {
+        var merged = await Reservations.MergeAsync(_duplicate!, _input.Seats);
+        Done($"{merged.FullName} heeft nu {Text.Seats(merged.Seats)}.");
+    });
+
+    private void Done(string message)
+    {
+        Flash.Set(message);
+        Navigation.NavigateTo("");
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            await action();
+        }
+        catch (Exception exception) when (exception is StoreException or ValidationException)
+        {
+            _duplicate = null;
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

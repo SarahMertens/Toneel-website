@@ -1,0 +1,61 @@
+name: CI and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Build, test, publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - run: dotnet restore
+      - run: dotnet build --configuration Release --no-restore
+      - run: dotnet test --configuration Release --no-build
+
+      - name: Publish the WebAssembly app
+        run: dotnet publish src/Toneel.Web --configuration Release --output publish
+
+      - name: Prepare for GitHub Pages
+        working-directory: publish/wwwroot
+        run: |
+          # The site lives at https://<user>.github.io/<repo>/, not at the root.
+          sed -i 's|<base href="/" />|<base href="/${{ github.event.repository.name }}/" />|' index.html
+          grep -q '<base href="/${{ github.event.repository.name }}/" />' index.html
+
+          # GitHub Pages serves 404.html for unknown paths. Giving it the app
+          # makes a reload on /toevoegen start the app, which then routes itself.
+          cp index.html 404.html
+
+          # Keep GitHub Pages from skipping the _framework folder.
+          touch .nojekyll
+
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish/wwwroot
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

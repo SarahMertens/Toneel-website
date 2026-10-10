@@ -1,0 +1,60 @@
+@* One button per performance. It shows how many seats are booked and
+   filters the list when pressed, so there is no separate statistics block. *@
+
+<section class="shows" aria-labelledby="shows-title">
+    <h2 id="shows-title">Voorstellingen</h2>
+
+    <ul class="shows__list">
+        <li>
+            <button type="button" class="show" aria-pressed="@Pressed(DateFilter.All)"
+                    @onclick="() => Select(DateFilter.All)">
+                <span class="show__date">Alle</span>
+                <span class="show__place">@Text.Count(Stats.PerPerformance.Count, "voorstelling", "voorstellingen")</span>
+                <span class="show__count">@Stats.Seats</span>
+            </button>
+        </li>
+
+        @foreach (var count in Stats.PerPerformance)
+        {
+            var date = count.Performance.Date;
+
+            <li>
+                <button type="button" class="show" aria-pressed="@Pressed(DateFilter.On(date))"
+                        @onclick="() => Select(DateFilter.On(date))">
+                    <span class="show__date">@DutchDate.ShortWeekday(date) @date.Day @DutchDate.ShortMonth(date)</span>
+                    <span class="show__place">@count.Performance.Location</span>
+                    <span class="show__count @(count.Seats == 0 ? "show__count--none" : "")">
+                        @count.Seats<span class="visually-hidden"> plaatsen</span>
+                    </span>
+                </button>
+            </li>
+        }
+
+        @if (Stats.UndatedSeats > 0 || Selected.Kind == DateFilterKind.Undated)
+        {
+            <li>
+                <button type="button" class="show" aria-pressed="@Pressed(DateFilter.Undated)"
+                        @onclick="() => Select(DateFilter.Undated)">
+                    <span class="show__date">Nog geen datum</span>
+                    <span class="show__place">Moet nog kiezen</span>
+                    <span class="show__count">
+                        @Stats.UndatedSeats<span class="visually-hidden"> plaatsen</span>
+                    </span>
+                </button>
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    /// <summary>Counts for all performances, not narrowed by the date filter itself.</summary>
+    [Parameter, EditorRequired] public ReservationStats Stats { get; set; } = default!;
+
+    [Parameter] public DateFilter Selected { get; set; }
+
+    [Parameter] public EventCallback<DateFilter> SelectedChanged { get; set; }
+
+    private string Pressed(DateFilter filter) => filter == Selected ? "true" : "false";
+
+    private Task Select(DateFilter filter) => SelectedChanged.InvokeAsync(filter);
+}

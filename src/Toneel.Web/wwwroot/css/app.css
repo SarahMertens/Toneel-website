@@ -1,0 +1,795 @@
+/* ---------------------------------------------------------------------------
+   Toneelgroep De Ballon, reservaties
+
+   The look comes from the box office: a roll of yellow admission tickets on a
+   cool grey counter. Every reservation is drawn as a ticket with a tear-off
+   stub that shows the number of seats.
+   --------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'Big Shoulders Display';
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/big-shoulders-display-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Big Shoulders Display';
+  font-weight: 800;
+  font-display: swap;
+  src: url('../fonts/big-shoulders-display-latin-800-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/atkinson-hyperlegible-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/atkinson-hyperlegible-latin-700-normal.woff2') format('woff2');
+}
+
+:root {
+  --counter: #e9edf1; /* page background */
+  --paper: #ffffff;
+  --ink: #17223b;
+  --ink-soft: #55607a;
+  --line: #cfd6de;
+  --stock: #f7d34a; /* ticket yellow */
+  --stock-deep: #dcb21c;
+  --stamp: #b3261e; /* destructive actions and errors */
+  --stamp-wash: #fbeae8;
+  --go: #1c6b4a;
+  --go-wash: #e4f3ec;
+
+  --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
+  --body: 'Atkinson Hyperlegible', 'Segoe UI', sans-serif;
+
+  --stub: 5.25rem; /* width of the tear-off part of a ticket */
+  --radius: 10px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--counter);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+p,
+ul,
+ol,
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Headings receive focus after navigation (for screen readers); they are not
+   interactive, so they need no focus ring. */
+h1:focus {
+  outline: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.boot {
+  padding: 4rem 1.25rem;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+/* --- Top bar ------------------------------------------------------------- */
+
+.bar {
+  background: var(--ink);
+  color: #fff;
+}
+
+.bar__inner {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+}
+
+.brand {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  color: var(--stock);
+  margin-right: auto;
+}
+
+.brand small {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--body);
+  font-weight: 400;
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  color: #c3cbdb;
+}
+
+.nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.nav a {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #dfe5f0;
+}
+
+.nav a:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.nav a.active {
+  background: var(--stock);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9375rem;
+  color: #c3cbdb;
+}
+
+.account button {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  color: #fff;
+  cursor: pointer;
+}
+
+.account button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.bar :focus-visible {
+  outline-color: var(--stock);
+}
+
+.demo-note {
+  background: var(--stock);
+  color: var(--ink);
+  font-size: 0.9375rem;
+}
+
+.demo-note p {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 0.5rem 1.25rem;
+}
+
+.demo-note button {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --- Page ---------------------------------------------------------------- */
+
+.page {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 5rem;
+}
+
+.page--narrow {
+  max-width: 34rem;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.5rem, 7vw, 3.75rem);
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+}
+
+.summary {
+  margin-top: 0.5rem;
+  color: var(--ink-soft);
+}
+
+.summary strong {
+  color: var(--ink);
+}
+
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+/* --- Buttons ------------------------------------------------------------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.55rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #f1f4f7;
+}
+
+.button--primary {
+  background: var(--ink);
+  color: #fff;
+}
+
+.button--primary:hover {
+  background: #24345a;
+}
+
+.button--danger {
+  background: var(--stamp);
+  border-color: var(--stamp);
+  color: #fff;
+}
+
+.button--danger:hover {
+  background: #96201a;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* --- Performances: filter and count in one -------------------------------- */
+
+.shows {
+  margin-bottom: 1.25rem;
+}
+
+.shows h2,
+.list-head h2 {
+  font-family: var(--body);
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+
+.shows__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.show {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 0.1rem 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  background: var(--paper);
+  text-align: left;
+  cursor: pointer;
+}
+
+.show:hover {
+  border-color: var(--line);
+}
+
+.show[aria-pressed='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.show__date {
+  font-weight: 700;
+}
+
+.show__place {
+  grid-column: 1;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.show[aria-pressed='true'] .show__place {
+  color: #c3cbdb;
+}
+
+.show__count {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.show__count--none {
+  color: var(--line);
+}
+
+.show[aria-pressed='true'] .show__count {
+  color: var(--stock);
+}
+
+/* --- Search -------------------------------------------------------------- */
+
+.list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 1.75rem 0 0.75rem;
+}
+
+.list-head h2 {
+  margin-bottom: 0;
+}
+
+.search {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+
+.search input,
+.field input,
+.field select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.search input:focus,
+.field input:focus,
+.field select:focus {
+  border-color: var(--ink);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(23, 34, 59, 0.18);
+}
+
+/* --- A reservation, drawn as a ticket ------------------------------------ */
+
+.tickets {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--stub) minmax(0, 1fr) auto;
+  align-items: stretch;
+  background: var(--paper);
+  border-radius: var(--radius);
+}
+
+/* The two half-round notches where the stub tears off. */
+.ticket::before,
+.ticket::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--stub) - 0.5rem);
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--counter);
+}
+
+.ticket::before {
+  top: -0.5rem;
+}
+
+.ticket::after {
+  bottom: -0.5rem;
+}
+
+.ticket__stub {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 0.75rem 0.25rem;
+  background: var(--stock);
+  border-radius: var(--radius) 0 0 var(--radius);
+  border-right: 2px dashed rgba(23, 34, 59, 0.4);
+}
+
+.ticket__seats {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 2.75rem;
+  line-height: 0.9;
+}
+
+.ticket__unit {
+  font-size: 0.8125rem;
+}
+
+.ticket__body {
+  padding: 0.8rem 1rem;
+  min-width: 0;
+}
+
+.ticket__name {
+  font-size: 1.1875rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ticket__when {
+  color: var(--ink-soft);
+}
+
+.ticket__when--open {
+  color: var(--stamp);
+}
+
+.ticket__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+}
+
+.ticket__actions a,
+.ticket__actions button {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ticket__actions a:hover,
+.ticket__actions button:hover {
+  background: var(--counter);
+}
+
+.ticket__actions .is-danger {
+  color: var(--stamp);
+}
+
+.ticket__actions button:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+@media (max-width: 40rem) {
+  .ticket {
+    grid-template-columns: var(--stub) minmax(0, 1fr);
+  }
+
+  /* The actions move below the text; the stub keeps the full height. */
+  .ticket__stub {
+    grid-row: span 2;
+  }
+
+  .ticket__actions {
+    grid-column: 2;
+    padding: 0 0.4rem 0.5rem;
+    flex-wrap: wrap;
+  }
+}
+
+/* --- Messages ------------------------------------------------------------ */
+
+.message {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  border-left: 5px solid var(--ink);
+  background: var(--paper);
+  margin-bottom: 1.25rem;
+}
+
+.message--ok {
+  border-color: var(--go);
+  background: var(--go-wash);
+}
+
+.message--error {
+  border-color: var(--stamp);
+  background: var(--stamp-wash);
+}
+
+.message p + p {
+  margin-top: 0.4rem;
+}
+
+.empty {
+  padding: 2.5rem 1.25rem;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.empty p + p {
+  margin-top: 0.75rem;
+}
+
+/* --- Forms --------------------------------------------------------------- */
+
+.form {
+  background: var(--paper);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.field label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.field__hint {
+  margin-top: 0.3rem;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.field--short input {
+  max-width: 8rem;
+}
+
+.field .invalid {
+  border-color: var(--stamp);
+}
+
+.validation-message {
+  margin-top: 0.3rem;
+  color: var(--stamp);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--ink-soft);
+}
+
+/* --- Dialog -------------------------------------------------------------- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(23, 34, 59, 0.55);
+}
+
+.dialog {
+  width: min(100%, 28rem);
+  background: var(--paper);
+  border-radius: var(--radius);
+  border-top: 8px solid var(--stock);
+  padding: 1.5rem;
+}
+
+.dialog h2 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.875rem;
+  line-height: 1;
+  margin-bottom: 0.75rem;
+}
+
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+/* --- Sign-in ------------------------------------------------------------- */
+
+.door {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+
+.door__poster {
+  background: var(--ink);
+  color: #fff;
+  padding: clamp(2rem, 6vw, 5rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3rem;
+}
+
+.door__company {
+  font-weight: 700;
+  color: var(--stock);
+}
+
+.door__title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(3.5rem, 9vw, 7.5rem);
+  line-height: 0.88;
+  color: var(--stock);
+  /* Each word on its own line, like the poster. */
+  max-width: 6ch;
+}
+
+.door__facts {
+  color: #c3cbdb;
+}
+
+.door__desk {
+  padding: clamp(2rem, 6vw, 5rem);
+  display: grid;
+  align-content: center;
+  gap: 1.5rem;
+}
+
+.door__desk h1 {
+  font-size: clamp(2.25rem, 5vw, 3rem);
+}
+
+.door__desk .form {
+  padding: 0;
+  background: none;
+}
+
+.door__demo {
+  padding-top: 1.5rem;
+  border-top: 2px dashed var(--line);
+}
+
+.door__demo p {
+  margin-bottom: 0.75rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 48rem) {
+  .door {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .door__poster {
+    gap: 1.25rem;
+  }
+
+  .door__title {
+    max-width: none;
+  }
+}
+
+/* --- Blazor's own error bar ---------------------------------------------- */
+
+#blazor-error-ui {
+  display: none;
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 20;
+  padding: 0.75rem 1.25rem;
+  background: var(--stamp);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .button,
+  .show,
+  .nav a {
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+}

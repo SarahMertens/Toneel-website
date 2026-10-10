@@ -1,0 +1,230 @@
+@page "/"
+@inject ReservationService Reservations
+@inject Production Production
+@inject BrowserFiles Files
+@inject Flash Flash
+
+<PageTitle>Reservaties – @Production.Company</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Reservaties</h1>
+
+        @if (_all is not null)
+        {
+            <p class="summary" data-testid="summary">
+                @if (_filter.IsEmpty)
+                {
+                    <text><strong>@Text.Seats(Shown.Seats)</strong> in @Text.Reservations(Shown.Reservations),
+                    samen <strong>@Text.Euro(Shown.Revenue)</strong>.</text>
+                }
+                else
+                {
+                    <text>Deze selectie: <strong>@Text.Seats(Shown.Seats)</strong> in
+                    @Text.Reservations(Shown.Reservations), samen <strong>@Text.Euro(Shown.Revenue)</strong>.</text>
+                }
+            </p>
+        }
+    </div>
+
+    <div class="head-actions">
+        <button type="button" class="button" disabled="@(_all is null || _busy)" @onclick="DownloadExcelAsync">
+            Excel downloaden
+        </button>
+        <a class="button button--primary" href="toevoegen">Reservatie toevoegen</a>
+    </div>
+</div>
+
+@if (_notice is not null)
+{
+    <div class="message message--ok" role="status" data-testid="notice">
+        <p>@_notice</p>
+    </div>
+}
+
+@if (_error is not null)
+{
+    <div class="message message--error" role="alert" data-testid="error">
+        <p>@_error</p>
+        @if (_all is null)
+        {
+            <p><button type="button" class="link-button" @onclick="LoadAsync">Opnieuw proberen</button></p>
+        }
+    </div>
+}
+
+@if (_all is null)
+{
+    @if (_error is null)
+    {
+        <p class="boot">Reservaties ophalen…</p>
+    }
+}
+else
+{
+    <PerformanceStrip Stats="StripStats" Selected="_filter.Date" SelectedChanged="FilterOnDate" />
+
+    <div class="list-head">
+        <h2 id="list-title">@ListTitle</h2>
+
+        <div class="search">
+            <label class="visually-hidden" for="search">Zoek op naam, datum of locatie</label>
+            <input id="search" type="search" placeholder="Zoek op naam, datum of locatie"
+                   value="@_filter.Search" @oninput="Search" />
+        </div>
+    </div>
+
+    @if (Visible.Count > 0)
+    {
+        <ul class="tickets" aria-labelledby="list-title">
+            @foreach (var reservation in Visible)
+            {
+                <ReservationTicket @key="reservation.Id" Reservation="reservation" Busy="_busy"
+                                   OnTicket="DownloadTicketAsync" OnDelete="AskDelete" />
+            }
+        </ul>
+    }
+    else if (_all.Count == 0)
+    {
+        <div class="empty" data-testid="empty">
+            <p>Er zijn nog geen reservaties.</p>
+            <p><a class="button button--primary" href="toevoegen">Eerste reservatie toevoegen</a></p>
+        </div>
+    }
+    else
+    {
+        <div class="empty" data-testid="empty">
+            <p>Geen reservaties gevonden met deze zoekopdracht of voorstelling.</p>
+            <p><button type="button" class="link-button" @onclick="ClearFilter">Alles tonen</button></p>
+        </div>
+    }
+}
+
+@if (_toDelete is not null)
+{
+    <ConfirmDialog Title="Reservatie verwijderen?" ConfirmText="Verwijderen" Danger Busy="_busy"
+                   OnConfirm="DeleteAsync" OnCancel="() => _toDelete = null">
+        <p>
+            De reservatie van <strong>@_toDelete.FullName</strong> voor @Text.Seats(_toDelete.Seats)
+            verdwijnt van de lijst. Dat kan niet ongedaan worden.
+        </p>
+    </ConfirmDialog>
+}
+
+@code {
+    private IReadOnlyList<Reservation>? _all;
+    private ReservationFilter _filter;
+    private Reservation? _toDelete;
+    private string? _notice;
+    private string? _error;
+    private bool _busy;
+
+    /// <summary>What the list shows: both filters applied, newest first.</summary>
+    private IReadOnlyList<Reservation> Visible => ReservationQuery.Apply(_all ?? [], _filter);
+
+    /// <summary>Totals of what the list shows.</summary>
+    private ReservationStats Shown => ReservationStats.Of(Visible, Production);
+
+    /// <summary>
+    /// Counts on the performance buttons. They follow the search but not the
+    /// date filter, otherwise all other buttons would drop to zero.
+    /// </summary>
+    private ReservationStats StripStats =>
+        ReservationStats.Of(ReservationQuery.Apply(_all ?? [], _filter with { Date = DateFilter.All }), Production);
+
+    private string ListTitle => _filter.Date switch
+    {
+        { Kind: DateFilterKind.On, Date: var date } => $"Reservaties voor {DutchDate.FormatWithWeekday(date)}",
+        { Kind: DateFilterKind.Undated } => "Reservaties zonder datum",
+        _ => "Alle reservaties, nieuwste eerst",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _notice = Flash.Take();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+
+        try
+        {
+            _all = await Reservations.GetAllAsync();
+        }
+        catch (StoreException exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    private void Search(ChangeEventArgs e) => _filter = _filter with { Search = e.Value?.ToString() ?? "" };
+
+    private void FilterOnDate(DateFilter date) => _filter = _filter with { Date = date };
+
+    private void ClearFilter() => _filter = default;
+
+    private void AskDelete(Reservation reservation)
+    {
+        _notice = null;
+        _toDelete = reservation;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_toDelete is null) return;
+
+        var name = _toDelete.FullName;
+
+        await RunAsync(async () =>
+        {
+            await Reservations.DeleteAsync(_toDelete);
+            _toDelete = null;
+            await LoadAsync();
+            _notice = $"De reservatie van {name} is verwijderd.";
+        });
+
+        _toDelete = null;
+    }
+
+    private Task DownloadExcelAsync() => RunAsync(async () =>
+    {
+        // Exports what is on screen, so a filtered list gives a filtered file.
+        await Files.DownloadAsync(ReservationExport.ToExcel(Visible, Production));
+    });
+
+    private Task DownloadTicketAsync(Reservation reservation) => RunAsync(async () =>
+    {
+        if (Ticket.For(reservation) is not { } ticket) return;
+
+        try
+        {
+            await Files.DownloadTicketAsync(ticket);
+        }
+        catch (JSException)
+        {
+            _error = "Het ticket kon niet gemaakt worden: de ticketafbeelding laadt niet.";
+        }
+    });
+
+    /// <summary>Runs an action with the buttons disabled and store errors shown on the page.</summary>
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            await action();
+        }
+        catch (StoreException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -1,0 +1,75 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AuthState Auth
+@inject DemoReservationStore Demo
+@inject NavigationManager Navigation
+@inject Production Production
+
+@if (Auth.Mode != SessionMode.SignedOut)
+{
+    <header class="bar">
+        <div class="bar__inner">
+            <a class="brand" href="">
+                De Ballon
+                <small>@Production.Title</small>
+            </a>
+
+            <nav class="nav" aria-label="Hoofdmenu">
+                <NavLink href="" Match="NavLinkMatch.All">Reservaties</NavLink>
+                <NavLink href="toevoegen">Toevoegen</NavLink>
+            </nav>
+
+            <div class="account">
+                @if (Auth.Mode == SessionMode.Account)
+                {
+                    <span>@Auth.Email</span>
+                }
+                <button type="button" @onclick="SignOutAsync">
+                    @(Auth.Mode == SessionMode.Demo ? "Demo afsluiten" : "Afmelden")
+                </button>
+            </div>
+        </div>
+    </header>
+
+    @if (Auth.Mode == SessionMode.Demo)
+    {
+        <div class="demo-note">
+            <p>
+                Demo met verzonnen namen. Wat je wijzigt, blijft in deze browser.
+                <button type="button" @onclick="ResetDemoAsync">Voorbeeldgegevens terugzetten</button>
+            </p>
+        </div>
+    }
+
+    <main class="page">
+        @Body
+    </main>
+}
+
+@code {
+    protected override void OnInitialized() => Auth.Changed += OnAuthChanged;
+
+    protected override void OnAfterRender(bool firstRender) => RedirectWhenSignedOut();
+
+    private void OnAuthChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>Every page in this layout needs a session; without one the visitor goes to the sign-in page.</summary>
+    private void RedirectWhenSignedOut()
+    {
+        if (Auth.Mode == SessionMode.SignedOut)
+        {
+            Navigation.NavigateTo("aanmelden", replace: true);
+        }
+    }
+
+    private Task SignOutAsync() => Auth.SignOutAsync();
+
+    private async Task ResetDemoAsync()
+    {
+        await Demo.ResetAsync();
+        // Reloading is the simplest way to make every page forget the old list.
+        Navigation.NavigateTo("", forceLoad: true);
+    }
+
+    public void Dispose() => Auth.Changed -= OnAuthChanged;
+}

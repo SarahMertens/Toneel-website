@@ -1,0 +1,82 @@
+@using System.Globalization
+@inject Production Production
+
+<EditForm Model="Model" OnValidSubmit="OnSubmit" class="form" novalidate>
+    <DataAnnotationsValidator />
+
+    <div class="field">
+        <label for="firstName">Voornaam</label>
+        <InputText id="firstName" @bind-Value="Model.FirstName" autocomplete="off" maxlength="60" />
+        <ValidationMessage For="() => Model.FirstName" />
+    </div>
+
+    <div class="field">
+        <label for="lastName">Achternaam</label>
+        <InputText id="lastName" @bind-Value="Model.LastName" autocomplete="off" maxlength="60" />
+        <ValidationMessage For="() => Model.LastName" />
+    </div>
+
+    <div class="field">
+        <label for="date">Voorstelling</label>
+        <InputSelect id="date" @bind-Value="DateValue">
+            <option value="">Nog niet gekozen</option>
+            @foreach (var performance in Production.Performances)
+            {
+                <option value="@Format(performance.Date)">
+                    @DutchDate.FormatWithWeekday(performance.Date) @performance.Date.Year, @performance.Location
+                </option>
+            }
+        </InputSelect>
+        <p class="field__hint">De locatie volgt uit de datum. Zonder datum kan er nog geen ticket gemaakt worden.</p>
+    </div>
+
+    <div class="field field--short">
+        <label for="seats">Aantal plaatsen</label>
+        <InputNumber id="seats" @bind-Value="Model.Seats" min="1" max="100" inputmode="numeric" />
+        <ValidationMessage For="() => Model.Seats" />
+        <p class="field__hint">@Text.Euro(Production.TicketPrice) per plaats</p>
+    </div>
+
+    @if (Error is not null)
+    {
+        <div class="message message--error" role="alert">
+            <p>@Error</p>
+        </div>
+    }
+
+    <div class="form__actions">
+        <button type="submit" class="button button--primary" disabled="@Busy">@SubmitText</button>
+        <a class="button" href="">Annuleren</a>
+    </div>
+</EditForm>
+
+@code {
+    private const string IsoDate = "yyyy-MM-dd";
+
+    /// <summary>
+    /// The select works with text. The date is converted here in a fixed
+    /// format, so the chosen option does not depend on the browser's language.
+    /// </summary>
+    private string DateValue
+    {
+        get => Model.Date is { } date ? Format(date) : "";
+        set => Model.Date = DateOnly.TryParseExact(
+            value, IsoDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+            ? date
+            : null;
+    }
+
+    private static string Format(DateOnly date) => date.ToString(IsoDate, CultureInfo.InvariantCulture);
+
+    [Parameter, EditorRequired] public ReservationInput Model { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string SubmitText { get; set; } = "";
+
+    /// <summary>Called only when every field is valid.</summary>
+    [Parameter] public EventCallback OnSubmit { get; set; }
+
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>A problem that is not about one field, such as a lost connection.</summary>
+    [Parameter] public string? Error { get; set; }
+}

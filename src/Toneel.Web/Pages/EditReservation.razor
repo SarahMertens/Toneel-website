@@ -1,0 +1,113 @@
+@page "/wijzigen/{Id}"
+@using System.ComponentModel.DataAnnotations
+@inject ReservationService Reservations
+@inject NavigationManager Navigation
+@inject Flash Flash
+
+<PageTitle>Reservatie wijzigen</PageTitle>
+
+<div class="page--narrow">
+    <div class="page-head">
+        <h1>Reservatie wijzigen</h1>
+    </div>
+
+    @if (_original is not null)
+    {
+        <ReservationForm Model="_input" SubmitText="Wijziging opslaan" OnSubmit="SubmitAsync"
+                         Busy="_busy" Error="@_error" />
+    }
+    else if (_loaded)
+    {
+        <div class="message message--error" role="alert">
+            <p>@(_error ?? "Deze reservatie bestaat niet meer. Mogelijk is ze intussen verwijderd.")</p>
+            <p><a href="">Terug naar de reservaties</a></p>
+        </div>
+    }
+    else
+    {
+        <p class="boot">Reservatie ophalen…</p>
+    }
+</div>
+
+@if (_duplicate is not null)
+{
+    <ConfirmDialog Title="Samenvoegen?" ConfirmText="Samenvoegen" Busy="_busy"
+                   OnConfirm="MergeAsync" OnCancel="() => _duplicate = null">
+        <p>
+            Er staat al een reservatie van <strong>@_duplicate.FullName</strong> op
+            @DutchDate.Format(_duplicate.Date!.Value), voor @Text.Seats(_duplicate.Seats).
+            Samenvoegen maakt er één reservatie van voor
+            @Text.Seats(Math.Min(_duplicate.Seats + _input.Seats, Reservation.MaxSeats)).
+        </p>
+    </ConfirmDialog>
+}
+
+@code {
+    private ReservationInput _input = new();
+    private IReadOnlyList<Reservation> _all = [];
+    private Reservation? _original;
+    private Reservation? _duplicate;
+    private string? _error;
+    private bool _loaded;
+    private bool _busy;
+
+    [Parameter] public string Id { get; set; } = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            _all = await Reservations.GetAllAsync();
+            _original = _all.FirstOrDefault(reservation => reservation.Id == Id);
+            if (_original is not null) _input = ReservationInput.From(_original);
+        }
+        catch (StoreException exception)
+        {
+            _error = exception.Message;
+        }
+
+        _loaded = true;
+    }
+
+    private Task SubmitAsync() => RunAsync(async () =>
+    {
+        // Changing the name or date can turn this reservation into a copy of another one.
+        _duplicate = ReservationService.FindDuplicate(_all, _input, ignoreId: _original!.Id);
+        if (_duplicate is not null) return;
+
+        var updated = await Reservations.UpdateAsync(_original, _input);
+        Done($"De reservatie van {updated.FullName} is aangepast.");
+    });
+
+    private Task MergeAsync() => RunAsync(async () =>
+    {
+        var merged = await Reservations.MergeAsync(_duplicate!, _input.Seats, replaces: _original);
+        Done($"Samengevoegd: {merged.FullName} heeft nu {Text.Seats(merged.Seats)}.");
+    });
+
+    private void Done(string message)
+    {
+        Flash.Set(message);
+        Navigation.NavigateTo("");
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            await action();
+        }
+        catch (Exception exception) when (exception is StoreException or ValidationException)
+        {
+            _duplicate = null;
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
